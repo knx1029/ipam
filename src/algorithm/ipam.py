@@ -1,6 +1,10 @@
 import sys
+import copy
+
+MAX_LEVEL = 32
 
 class Policies:
+    ## n is #dimension. m is the #hosts
     def __init__(self, n, m, values):
         self.n = n
         self.m = m
@@ -33,6 +37,13 @@ class Policies:
                 counts[v] = 1
         return counts
 
+
+def add_to_dict(d, key, value):
+    if (key in d):
+        d[key].append(value)
+    else:
+        d[key] = [value]
+
 def readin_policies(input):
     fin = open(input, "r")    
     line = fin.readline()
@@ -58,115 +69,112 @@ def readin_policies(input):
     return policies
 
 
+class Term:
+    id = 1
+    def __init__(self, level, dims, subs = None):
+        self.subs = subs
+        self.level = level
+        self.dims = dims
+        self.edges = dict()
+        self.id = Term.id
+        Term.id = Term.id + 1
 
-def wildcard_two(policyC):
+    def __str__(self):
+        edge_str = ';'.join("{0}->{1}".format(x, y) for (x,y) in self.edges.items())
+        sub_str = "None"
+        if self.subs:
+            sub_str = "({0},{1})".format(self.subs[0].id, self.subs[1].id)
+        return "id{0}, L{1}, dims=[{2}], e={3}, subs={4}".format(self.id,
+                                                                 self.level,
+                                                                 ' '.join(self.dims),
+                                                                 edge_str,
+                                                                 sub_str)
+
+def wildcard(policyAll):
 
     def get_terms(policy):
         counts = policy.count_values()
-        terms = dict()
+        terms = []
         for v, c in counts.items():
-            s = set()
-            for i in range(0, 31):
+            for i in range(0, MAX_LEVEL):
                 j = (1<<i)
                 if (c & j) > 0:
-                    s.add((i, j))
-            terms[v] = s
+                    term = Term(i, v.split(' '))
+                    terms.append(term)
         return terms
 
+    def eq_dims(term1, term2):
+        indexes = set()
+        for index in range(len(term1.dims)):
+            if (index not in term1.edges) and (index not in term2.edges):
+                if (term1.dims[index] != '*'):
+                    if (term1.dims[index] == term2.dims[index]):
+                        indexes.add(index)
+        return indexes
+
+    def mask_term(term1, term2, indexes):
+        dims = ['*'] * len(term1.dims)
+        for index in indexes:
+            dims[index] = term1.dims[index]
+        return Term(term1.level + 1, dims, (term1, term2, len(indexes)))
+
     ## work starts here
-    policyA = policyC.project(0)
-    policyB = policyC.project(1)
+    termsAll = get_terms(policyAll)
 
-    termsA = get_terms(policyA)
-    termsB = get_terms(policyB)
-    termsC = get_terms(policyC)
+    leveled_terms = dict()
+    for term in termsAll:
+        add_to_dict(leveled_terms, term.level, term)
 
-    print "A"
-    print "\n".join("{} {}".format(v, t) for (v, t) in sorted(termsA.items()))
-    print "B"
-    print "\n".join("{} {}".format(v, t) for (v, t) in sorted(termsB.items()))
-    print "C"
-    print "\n".join("{} {}".format(v, t) for (v, t) in sorted(termsC.items()))
-    print "................."
+    for level, terms in leveled_terms.items():
+        print "level ", level
+        print "\n".join("{}".format(t) for t in terms)
 
-    perfect_pairs = []
-    temp_dont = []
-    temp_undec = []
-    for valueC, termC in termsC.items():
-        tokens = valueC.split(' ')
-        valueA = tokens[0]
-        valueB = tokens[1]
-        termA = termsA[valueA]
-        termB = termsB[valueB]
+    for level in range(MAX_LEVEL):
+        if (level not in leveled_terms):
+            continue
+        terms = leveled_terms[level]
+        print level, len(terms)
+        found = False
+        ## enumerate a term
+        for i in range(len(terms)):
+            term_i = terms[i]
+            if (len(term_i.dims) == len(term_i.edges)):
+                continue
+            ## enumerate the second term
+            matches = []
+            for j in range(i + 1, len(terms)):
+                term_j = terms[j]
+                if (len(term_j.dims) == len(term_j.edges)):
+                    continue
+                indexes = eq_dims(term_i, term_j)
+                if (len(indexes) > 0):
+                    matches.append((len(indexes), j, indexes))
+            matches.sort(reverse = True)
 
-        for term in termC:
-            if (term in termB):
-                if (term in termA):
-                    perfect_pairs.append((valueA, valueB, term))
-                    termB.remove(term)
-                    termA.remove(term)
-                else:
-                    temp_dont.append((valueA, valueB, term))
-                    termB.remove(term)
+            ## match up terms
+            for (_, j, indexes) in matches:
+                term_j = terms[j]
+                indexes = indexes.difference(set(term_i.edges))
+                if (len(indexes) == 0):
+                    continue
+                term_k = mask_term(term_i, term_j, indexes)
+                add_to_dict(leveled_terms, term_k.level, term_k)
+                for index in indexes:
+                    term_i.edges[index] = term_k.id
+                    term_j.edges[index] = term_k.id
+
+    for level, terms in leveled_terms.items():
+        for term in terms:
+            if (term.subs == None):
+                term.weight = 1
             else:
-                temp_undec.append((valueA, valueB, term))
+                term.weight = term.subs[0].weight + term.subs[1].weight + term.subs[2]
 
-    print "A"
-    print "\n".join("{} {}".format(v, t) for (v, t) in sorted(termsA.items()))
-    print "B"
-    print "\n".join("{} {}".format(v, t) for (v, t) in sorted(termsB.items()))
-    print "................."
-    print "perfect"
-    print "\n".join(str(t) for t in perfect_pairs)
+    print "After edges..."
+    for level, terms in leveled_terms.items():
+        print "level ", level
+        print "\n".join("{0}, w={1}".format(t, t.weight) for t in terms)
 
-    ## match up the undecided ones
-    termsK = dict()
-    for valueA, valueB, term in temp_undec:
-        termA = termsA[valueA]
-        termB = termsB[valueB]
-
-        if (valueB not in termsK):
-            termsK[valueB] = []
-        termK = termsK[valueB]
-
-        ## find the smallest terma that is no smaller than term
-        best_term = None
-        for terma in termA:
-            if (terma[1] >= term[1]):
-                if best_term == None or terma[1] < best_term[1]:
-                    best_term = terma
-        termA.remove(best_term)
-        if (best_term[1] > term[1]):
-            termA.add((best_term[0], best_term[1] - term[1]))
-        termK.append((term, (best_term[0], valueA)))
-
-    print "to-be-decided"
-    print "\n".join("{} {}".format(v, sorted(t)) for (v, t) in sorted(termsK.items()))
-
-
-    decided_pairs = []
-    for valueA, valueB, term in temp_dont:
-        termA = termsA[valueA]
-        termB = termsB[valueB]
-
-        best_term = None
-        for terma in termA:
-            if (terma[1] >= term[1]):
-                best_term = terma
-                break
-        termA.remove(best_term)
-        if (best_term[1] > term[1]):
-            termA.add((best_term[0], best_term[1] - term[1]))
-        decided_pairs.append((valueB, term, (best_term[0], valueA)))
-
-    print "pre-decide"
-    print "\n".join(str(t) for t in decided_pairs)
-
-
-
-
-#        print valueC, " : ", termA, " | ", termB, " | ", termC
-    
 
 
 def ipam(policy):
@@ -217,7 +225,7 @@ p = readin_policies(input)
 option = "nanxi" # "ori"
 # option = "ori"
 if option == "nanxi":
-    wildcard_two(p)
+    wildcard(p)
 elif option == "ori":
     num_rules, nrules = ipam(p)
     print "heuristics:", num_rules, " =", nrules

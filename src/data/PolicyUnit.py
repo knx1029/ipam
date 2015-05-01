@@ -1,5 +1,6 @@
 import sys
 import operator
+import copy
 
 class Entry:
     
@@ -211,6 +212,7 @@ def joint(ip1, ip2):
         res = -1
     return res
 
+## keep join two sips until the set does not change
 def closed_sip_set(sips):
     prev = sips
     now = set()
@@ -229,7 +231,22 @@ def closed_sip_set(sips):
 
     return now
 
+## find the unit that sip belongs to (longest matching)
+def find_unit(sip, units):
+    best_ip = 0
+    best_unit = None
+    for unit in units:
+        for ip in unit:
+            if (joint(ip, sip) == sip):
+                if (ip >= best_ip):
+                    best_ip = ip
+                    best_unit = unit
+                break
+    return best_unit
 
+
+## find the policy units. 
+## use_sip=True means source policy units
 def analyze(entries, use_sip):
     
     if (use_sip):
@@ -240,8 +257,10 @@ def analyze(entries, use_sip):
     sips = closed_sip_set(sips)
 
     units = []
+    ## iterate over all sip prefixes
     for sip1 in sips:
         found = False
+        ## examine whether sip belongs to an existing units
         for unit in units:
             sip2 = unit[0]
             equal = True
@@ -268,7 +287,7 @@ def analyze(entries, use_sip):
     if (0 not in sips):
         units.append([0])
         
-    print "units", len(units)
+#    print "units", len(units)
 #    for unit in units:
 #        print "sips", len(unit)
 #        print "\n".join(intip2str(k) for k in unit)
@@ -276,19 +295,8 @@ def analyze(entries, use_sip):
     return units
 
 
+
 def across_acls(units_list):
-    ## find the unit that sip belongs to (longest matching)
-    def find_unit(sip, units):
-        best_ip = 0
-        best_unit = None
-        for unit in units:
-            for ip in unit:
-                if (joint(ip, sip) == sip):
-                    if (ip >= best_ip):
-                        best_ip = ip
-                        best_unit = unit
-                    break
-        return best_unit
 
     ## starts here
     sips = set()
@@ -298,14 +306,16 @@ def across_acls(units_list):
                 if (sip not in sips):
                     sips.add(sip)
     sips = closed_sip_set(sips)
-    print len(sips)
+#    print len(sips)
 
     groups = []
     sip_count = 0
+    ## iterate over sips
     for sip1 in sips:
         found = False
         sip_count = sip_count + 1
         print sip_count, len(groups)
+        ## examine if the sip belongs to an existing group
         for group in groups:
             sip2 = group[0]
             equal = True
@@ -322,30 +332,107 @@ def across_acls(units_list):
         if (not found):
             groups.append([sip1])
 
-    print "groups", len(groups)
- #   for group in groups:
- #       print "sips", len(group)
- #       print "\n".join(intip2str(k) for k in group)
- #       print "..........."
+#    print "groups", len(groups)
+#    for group in groups:
+#        print "sips", len(group)
+#        print "\n".join(intip2str(k) for k in group)
+#        print "..........."
+
+    return groups
 
 
+def minimum_rules(entries, src_units, dst_units):
+    new_entries = []
+    for e in entries:
+        sip = e.sip
+        dip = e.dip
+        sunit = find_unit(sip, src_units)
+        dunit = find_unit(dip, dst_units)
+        entry = copy.copy(e)
+        entry.sip = sunit[0]
+        entry.dip = dunit[0]
+
+        found = False
+        for ne in new_entries:
+            if entry.eq(ne):
+                found = True
+                break
+        if (not found):
+            new_entries.append(entry)
+
+    return new_entries
 
         
+## main function
 input = sys.argv[1]
-use_sip = (sys.argv[2] == 's')
+## s for use_sip, d for use_dip, a for across_acls, m for minimium #rules 
+mode = sys.argv[2]
+use_sip = ('s' in mode)
 is_purdue = (sys.argv[3] == 'p')
+
 if is_purdue:
     entries_list = readin_purdue(input)
-    units_list = []
-    count = 0
-    for name, entries in entries_list:
-#        print "ACL", name
-        units = analyze(entries, use_sip)
-        if (len(units) == 1):
-            continue
-        units_list.append(units)
-        count = count + 1
-    across_acls(units_list)
+
+    if 'a' in mode:
+        src_units = []
+        dst_units = []
+        if ('s' in mode) or ('m' in mode):
+            src_units_list = []
+            for name, entries in entries_list:
+                units = analyze(entries, True)
+                if (len(units) == 1):
+                    continue
+                src_units_list.append(units)
+            src_units = across_acls(src_units_list)
+            if ('s' in mode):
+                print "unit", len(src_units)
+
+        if ('d' in mode) or ('m' in mode):
+            dst_units_list = []
+            for name, entries in entries_list:
+                units = analyze(entries, True)
+                if (len(units) == 1):
+                    continue
+                dst_units_list.append(units)
+            print "across"
+            dst_units = across_acls(dst_units_list)
+            print "across done"
+            if ('d' in mode):
+                print "unit", len(dst_units)
+            
+        if ('m' in mode):
+            if ('s' in mode):
+                print "src_unit", len(src_units)
+                print "dst_unit", len(dst_units)
+            for name, entries in entries_list:
+                new_entries = minimum_rules(entries, src_units, dst_units)
+                print "len", len(entries), len(new_entries)
+
+    else:
+        for name, entries in entries_list:
+            print "ACL", name
+            if ('s' in mode):
+                units = analyze(entries, True)
+                print "unit", len(units)
+            elif ('d' in mode):
+                units = analyze(entries, False)
+                print "unit", len(units)
+            elif ('m' in mode):
+                src_units = analyze(entries, True)
+                dst_units = analyze(entries, False)
+                print "src_unit", len(src_units)
+#                print src_units
+                print "dst_unit", len(dst_units)
+#                print dst_units
+                new_entries = minimum_rules(entries, src_units, dst_units)
+                print "len", len(entries), len(new_entries)
+#                print "\n".join(str(e) for e in entries)
+#                print "......"
+#                print "\n".join(str(e) for e in new_entries)
+
+
+
 else:
     entries = readin(input)
     analyze(entries, use_sip)
+    

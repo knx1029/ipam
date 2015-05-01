@@ -12,15 +12,18 @@ if [ "$1" == "gatech" ]; then
 fi
 
 if [ "$1" == "purdue" ]; then
-    echo "" > purdue.s_summary
-    echo "" > purdue.d_summary
+#    echo "" > purdue.s_summary
+#    echo "" > purdue.d_summary
+    echo "" > purdue.m_summary
 
-    for f in  ../../PurdueAcl/configs/config*
+    for f in  ../../../QoS/PurdueAcl/configs/config*
     do
-	echo "config $f" >> purdue.d_summary
-	python PolicyUnit.py $f d p >> purdue.d_summary
-	echo "config $f" >> purdue.s_summary
-	python PolicyUnit.py $f s p >> purdue.s_summary
+#	echo "config $f" >> purdue.d_summary
+#	python PolicyUnit.py $f d p >> purdue.d_summary
+#	echo "config $f" >> purdue.s_summary
+#	python PolicyUnit.py $f s p >> purdue.s_summary
+	echo "config $f" >> purdue.m_summary
+	python PolicyUnit.py $f m p >> purdue.m_summary
     done
 
 fi
