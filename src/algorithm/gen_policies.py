@@ -48,8 +48,9 @@ def bld_group(nbuildings, ngroups, nusers_per_group):
             k = (k + 1) % b
 
 # two(10, 10)
-# rand(32, [3, 3, 3])
-nb = int(sys.argv[1])
-ng = int(sys.argv[2])
-nu = int(sys.argv[3])
-bld_group(nb, ng, nu)
+##rand(32, [3, 3, 3])
+rand(128, [3, 3, 3])
+#nb = int(sys.argv[1])
+#ng = int(sys.argv[2])
+#nu = int(sys.argv[3])
+#bld_group(nb, ng, nu)
