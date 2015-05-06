@@ -301,7 +301,7 @@ def merge_pyramids(pyramids, term, visited_terms):
         return True
 
 
-def construct_pyramids(leveled_terms, nbits):
+def construct_pyramids(leveled_terms):
     
     ## mark the term and its subtree as visited
     def mark_visited(term):
@@ -371,6 +371,7 @@ def construct_pyramids(leveled_terms, nbits):
         print "FINAL"
 #        final_pyramid.show()
         print correct([final_pyramid])
+    return final_pyramid
 
 def check_valid(pyramids):
     spare_counts = {k : 0 for k in range(Pyramid.nbits)}
@@ -489,49 +490,24 @@ def wildcard(policyAll):
     for level, terms in leveled_terms.items():
         for term in terms:
             for i in range(policyAll.n):
-                if (i not in term.edges) and (term.dims[i] != '*'):
+                if (term.dims[i] != '*') and (i not in term.edges):
                     min_rules = min_rules + 1
-            if (term.weight == 1):
-                max_rules = max_rules + 1
+                if (term.weight == 1):
+                    max_rules = max_rules + 1
 
-    max_rules = max_rules * policyAll.n
     print "max_rules:", max_rules
-    print "min_rules", min_rules
-    print "best_reduction:", max_rules - min_rules
+    print "min_rules:", min_rules
 
-    nbits = 5
-    construct_pyramids(leveled_terms, nbits)
-
-#    print "After edges..."
-#    for level, terms in leveled_terms.items():
-#        print "level ", level
-#        print "\n".join(str(t) for t in terms)
-#    print ".............."
-
-#    blocks = construct_term_blocks(leveled_terms)
-#    shown_terms = set()
-#    def show(term):
-#        if term in shown_terms:
-#            return
-#        print str(term)
-#        shown_terms.add(term)
-#        if (term.subs != None):
-#            show(term.subs[0])
-#            show(term.subs[1])
-
-#    greedy_red = sum(map(lambda(x): sum(map(lambda(y):y[0].weight, x),), blocks))
-#    print "total blocks:", len(blocks), "greedy_red:", greedy_red
-#    print max_rules - greedy_red
-#    for block in blocks:
-#        print "-------------"
-#        for cur_term, last_term in block:
-#            if last_term == None:
-#                print "start",
-#            else:
-#                print "expand from", last_term.id,
-#            show(cur_term)
-#        print ">>>>>>>>>>>>"
-#        print "-------------"
+    final_pyramid = construct_pyramids(leveled_terms)
+    use_rules = 0
+    if (final_pyramid != None):
+        for term in final_pyramid.terms:
+            for i in range(policyAll.n):
+                if (term.dims[i] != '*'):
+                    if ((i not in term.edges) or 
+                        (term.edges[i] not in final_pyramid.terms)):
+                        use_rules = use_rules + 1
+    print "use_rules", use_rules
 
     
 input = sys.argv[1]
@@ -546,9 +522,5 @@ elif option == "ori":
     num_rules, nrules = ipam(p)
     #print "heuristics:", num_rules, " =", nrules
     print "heuristics:", sum(nrules)
-#print "best:",
-#for i in range(0, p.n):
-#    q = p.project(i)
-#    print ipam(q),
-#print ""
+
 
