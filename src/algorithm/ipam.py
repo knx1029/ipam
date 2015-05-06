@@ -1,7 +1,7 @@
 import sys
 import copy
 import heapq
-from data_structure import *
+from ipam_ds import *
 
 MAX_LEVEL = 32
 
@@ -171,7 +171,75 @@ def get_leveled_terms(policyAll):
     return leveled_terms
 
 
+def correct(pyramids):
+    for py in pyramids:
+        for term in py.terms:
+            bv = py.repr(term)
+            ## check level
+            if (term.level != bv.level()):
+                print "unmatched level", str(id), "<->", str(bv)
+                return False
+            ## check subs
+            if (term.subs != None):
+                bv0 = py.repr(term.subs[0])
+                bv1 = py.repr(term.subs[1])
+                neg_bits = bv0.negate_bits(bv1)
+                if (neg_bits == None or len(neg_bits) != 1):
+                    print "negate wrong", str(bv0), str(bv1), "->", str(bv)
+                    return False
+                if (not bv.contain(bv0)):
+                    print "not contain", str(bv0), str(bv)
+                    return False
+                if (not bv.contain(bv1)):
+                    print "not contain", str(bv1), str(bv)
+                    return False
+            ## disjoint among atomic term
+            else: 
+                for term2 in py.terms:
+                    if (term2.subs == None) and (term2 != term):
+                        bv2 = py.repr(term2)
+                        if (bv.overlap(bv2)):
+                            print "overlap", str(term), bv, "<->", str(term2), bv2
+                            return False
+    return True
+                            
 
+def final_merge(pyramids):
+    ## starts here
+    root_bv = BitValue(Pyramid.nbits, None)
+    term2bv = dict()
+    terms = []
+    final_pyramid = Pyramid(Pyramid.nbits,
+                            terms,
+                            set(),
+                            root_bv,
+                            term2bv)
+    spare_bvs = [(-root_bv.level(), root_bv)]
+    for py in sorted(pyramids, cmp = lambda x,y: (y.level - x.level)):
+        l, sbv = heapq.heappop(spare_bvs)
+        l = -l
+        if (py.level > l):
+            return None
+        terms.extend(py.terms)
+        term2bv.update(py.term2bv)
+        for i in range(0, Pyramid.nbits):
+            if (sbv.refs[i] != None):
+                py.root.super_ref_other(term2bv, i, sbv)
+
+        final_pyramid.bv_repr(sbv)
+        final_pyramid.bv_repr(py.root)
+        new_sbvs = sbv.difference(py.root)
+        for new_sbv in new_sbvs:
+            heapq.heappush(spare_bvs, (-new_sbv.level(), new_sbv))
+        for new_sbv in py.spare_nodes:
+            heapq.heappush(spare_bvs, (-new_sbv.level(), new_sbv))
+
+    for (_, bv) in spare_bvs:
+        final_pyramid.spare_nodes.add(bv)
+
+    return final_pyramid
+
+## merge pyramids given the term
 def merge_pyramids(pyramids, term, visited_terms):
 
     def search_pyramid(t):
@@ -180,11 +248,17 @@ def merge_pyramids(pyramids, term, visited_terms):
                 return pyramid
         return None
 
+    ## starts here
     if (term.subs == None) or (term in visited_terms):
         return True
 
     if ((not merge_pyramids(pyramids, term.subs[0], visited_terms)) or
         (not merge_pyramids(pyramids, term.subs[1], visited_terms))):
+        return False
+
+    res, usedup_level = check_valid(pyramids)
+    if (not res):
+#        print "STOPPED!"
         return False
 
     py1 = search_pyramid(term.subs[0])
@@ -196,40 +270,36 @@ def merge_pyramids(pyramids, term, visited_terms):
 #    print ">> py2",
 #    py2.show()
 
-    print "\n>>  merge by", str(term), py1.id, py2.id,
+#    print "\n>>  merge by", str(term)
+#    print py1.id, py2.id
 
-    py_star = py1.merge(py2, term.subs[0], term.subs[1], term)
+    py_star = py1.merge(py2,
+                        term.subs[0], 
+                        term.subs[1],
+                        term,
+                        usedup_level)
+
     if (py_star == None):
-        print "-> None"
+#        print "-> None"
         return False
     else:
-        pyramids.remove(py1)
-        if (py2 != py1):
+        py_star.repr_all()
+
+        if (py1 in pyramids):
+            pyramids.remove(py1)
+        if (py2 in pyramids):
             pyramids.remove(py2)
-        pyramids.append(py_star)
+        if (py_star not in pyramids):
+            pyramids.add(py_star)
         visited_terms.add(term.subs[0])
         visited_terms.add(term.subs[1])
         visited_terms.add(term)
 
-        print "->", py_star.id
-        py_star.show()
-
-        if (not check_valid(pyramids)):
-            print "STOPPED!"
-            return False
+#        print "->", py_star.id
+#        py_star.show()
 
         return True
 
-
-class Conn:
-    def __init__(self, term):
-        self.term = term
-
-    def __cmp__(self, other_conn):
-        if (self.term.weight != other_conn.term.weight):
-            return other_conn.term.weight - self.term.weight
-        else:
-            return self.term.level - other_conn.term.level
 
 def construct_pyramids(leveled_terms, nbits):
     
@@ -253,13 +323,13 @@ def construct_pyramids(leveled_terms, nbits):
                            term.subs[1].weight + 1)
 
     ## starts here
-    pyramids = []
+    pyramids = set()
     connections = []
 
     for level, terms in leveled_terms.items():
         for term in terms:
             if (term.subs == None):
-                pyramids.append(Pyramid.one_term_pyramid(term))
+                pyramids.add(Pyramid.one_term_pyramid(term))
             else:
                 connections.append(Conn(term))
 
@@ -275,51 +345,39 @@ def construct_pyramids(leveled_terms, nbits):
         if (old_w > conn.term.weight):
             heapq.heappush(connections, conn)
             continue
-        print "connection", conn.term
-#        print "BEFORE"
-#        for p in pyramids:
-#            p.show()
-#            print ""
+#        print "connection", conn.term
 
-        temp_pyramids = [p.copy() for p in pyramids]
+        temp_pyramids = {p.copy() for p in pyramids}
         temp_visited_terms = copy.copy(visited_terms)
         if (merge_pyramids(temp_pyramids, conn.term, temp_visited_terms)):
-            pyramids = temp_pyramids
-            visited_terms = temp_visited_terms
+            res, _ = check_valid(temp_pyramids)
+            if (res):
+                pyramids = temp_pyramids
+                visited_terms = temp_visited_terms
 
-#        print "\nAFTER"
-#        for p in temp_pyramids:
-#            p.show()
-#            print ""
-
-#        print "\nOLD"
-#        for p in pyramids:
-#            p.show()
-#            print ""
-
-#        res = merge_pyramids(pyramids, conn.term, visited_terms)
-
-#        if (not check_valid(pyramids)):
-#            break
-#        break
+    for py in pyramids:
+        ## single term pyramid
+        if (len(py.terms) == 1):
+            visited_terms.add(py.terms[0])
 
     print "visited", len(visited_terms)
 #    print "\n".join(str(t) for t in visited_terms)
+    print correct(pyramids)
 
-    print check_valid(pyramids)
-
-#    print "\nFINAL"
-#    for p in pyramids:
-#        p.show()
-#        print ""
+    final_pyramid = final_merge(pyramids)
+    if (final_pyramid == None):
+        print "WRONG"
+    else:
+        print "FINAL"
+#        final_pyramid.show()
+        print correct([final_pyramid])
 
 def check_valid(pyramids):
     spare_counts = {k : 0 for k in range(Pyramid.nbits)}
     spare_counts[Pyramid.nbits] = 1
-    pyramids.sort(cmp = lambda x,y: (y.level - x.level))
-
+    usedup_level = -1
     level = Pyramid.nbits
-    for py in pyramids:
+    for py in sorted(pyramids, cmp = lambda x,y: (y.level - x.level)):
         x = spare_counts[py.level]
         if (py.level < level):
             for i in range(py.level + 1, level + 1):
@@ -327,16 +385,16 @@ def check_valid(pyramids):
                 del spare_counts[i]
             level = py.level
         if (x < 1):
-            return False
+            return False, None
         spare_counts[level] = x - 1
 
+        if (x == 0):
+            usedup_level = max(usedup_level, level)
 
         for bv in py.spare_nodes:
-            bv_level = bv.refs.count(None)
+            bv_level = bv.level()
             spare_counts[bv_level] = spare_counts[bv_level] + 1
-    return True
-        
-
+    return True, usedup_level
 
 ## find the term blocks
 def construct_term_blocks(leveled_terms):
@@ -426,18 +484,20 @@ def construct_term_blocks(leveled_terms):
 def wildcard(policyAll):
     leveled_terms = get_leveled_terms(policyAll)
 
-    best_red = 0
     max_rules = 0
+    min_rules = 0
     for level, terms in leveled_terms.items():
         for term in terms:
-            if (len(term.edges) == 0):
-                best_red = best_red + term.weight
-            if (term.weight == 0):
+            for i in range(policyAll.n):
+                if (i not in term.edges) and (term.dims[i] != '*'):
+                    min_rules = min_rules + 1
+            if (term.weight == 1):
                 max_rules = max_rules + 1
+
     max_rules = max_rules * policyAll.n
     print "max_rules:", max_rules
-    print "min_rules", max_rules - best_red
-    print "best_reduction:", best_red
+    print "min_rules", min_rules
+    print "best_reduction:", max_rules - min_rules
 
     nbits = 5
     construct_pyramids(leveled_terms, nbits)
