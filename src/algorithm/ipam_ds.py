@@ -1,5 +1,34 @@
 import copy
 
+WC = '*'
+
+class Pattern:
+    id = 1
+    def __init__(self, dims, value):
+        self.id = Pattern.id
+        Pattern.id = Pattern.id + 1
+        self.dims = dims
+        self.value = value
+
+    def __hash__(self):
+        return self.id
+
+    def __str__(self):
+        return str(self.id)
+
+    def show(self):
+        print "({}: [{}] : {})".format(self.id, 
+                                  ",".join(self.dims),
+                                  self.value)
+
+    def contain(self, other_dims):
+        if (len(self.dims) != len(other_dims)):
+            return False
+        for i in range(len(self.dims)):
+            if (self.dims[i] != other_dims[i]) and (self.dims[i] != WC):
+                return False
+        return True
+
 class Policies:
     ## n is #dimension. m is the #hosts
     def __init__(self, n, m, values):
@@ -37,7 +66,7 @@ class Policies:
 
 class Term:
     id = 1
-    def __init__(self, level, dims, subs = None, weight = 1):
+    def __init__(self, level, dims, weight, subs = None):
         self.subs = subs
         self.level = level
         self.dims = dims

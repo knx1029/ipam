@@ -3,8 +3,6 @@ import copy
 import heapq
 from ipam_ds import *
 
-MAX_LEVEL = 32
-
 def add_to_dict(d, key, value):
     if (key in d):
         d[key].append(value)
@@ -12,6 +10,14 @@ def add_to_dict(d, key, value):
         d[key] = [value]
 
 def readin_policies(input):
+    ## input uses 0 to stand for * to denote patterns
+    def strd(d):
+        if (d == 0): 
+            return '*'
+        else:
+            return str(d)
+
+    ## starts here
     fin = open(input, "r")    
     line = fin.readline()
     tokens = line.split(' ')
@@ -19,6 +25,8 @@ def readin_policies(input):
     m = int(tokens[0])
     ## number of functions
     n = int(tokens[1])
+    ## number of patterns
+    r = int(tokens[2])
     values = []
     for i in range(0, m):
         line = fin.readline()
@@ -27,14 +35,23 @@ def readin_policies(input):
         if (len(vs) != n):
             return None
         newline = ' '.join(str(v) for v in vs)
-#        values.append(vs)
         values.append(newline)
     if (len(values) != m):
         return None
-
     policies = Policies(n, m, values)
-    return policies
 
+    patterns = set()
+    for i in range(0, r):
+        line = fin.readline()
+        tokens = line.split(' ')
+        if (len(tokens) != n + 1):
+            return None
+        c = int(tokens[n])
+        vs = map(int, tokens[:n])
+        dims = map(strd, vs)
+        patterns.add(Pattern(dims, c))
+
+    return policies, patterns
 
 
 def ipam(policy):
@@ -78,51 +95,65 @@ def ipam(policy):
     return num_rules, nrules
 
 
-def get_leveled_terms(policyAll):
+def get_leveled_terms(policyAll, patterns):
     ## extract terms from the policy
-    def get_terms(policy):
+    def get_terms(policy, patterns):
         counts = policy.count_values()
         terms = []
         for v, c in counts.items():
-            for i in range(0, MAX_LEVEL):
+            dims = v.split(' ')
+            weight = 0
+            for p in patterns:
+                if (p.contain(dims)):
+                    weight = weight + p.value
+            for i in range(0, Pyramid.nbits):
                 j = (1<<i)
                 if (c & j) > 0:
-                    term = Term(i, v.split(' '))
+                    term = Term(i, v.split(' '), weight)
                     terms.append(term)
         return terms
 
     ## find the dimensions that two terms share
     ## common values
-    def eq_dims(term1, term2):
-        indexes = set()
-        for index in range(len(term1.dims)):
-            if ((index not in term1.edges) and 
-                (index not in term2.edges)):
-                if (term1.dims[index] != '*'):
-                    if (term1.dims[index] == term2.dims[index]):
-                        indexes.add(index)
-        return indexes
+    def eq_patterns(term1, term2, patterns):
+        ps = set()
+        for pattern in patterns:
+            if ((pattern not in term1.edges) and 
+                (pattern not in term2.edges)):
+                if (pattern.contain(term1.dims) and 
+                    pattern.contain(term2.dims)):
+                    ps.add(pattern)
+        return ps
+
+    ## sum up the full value
+    def sum_ps_value(ps):
+        if (len(ps) == 0):
+            return 0
+        else:
+            return sum(map(lambda(x):x.value, ps))
 
     ## aggregate two terms into a term with their
     ## common dimension values
-    def mask_term(term1, term2, indexes):
-        dims = ['*'] * len(term1.dims)
-        for index in indexes:
-            dims[index] = term1.dims[index]
+    def mask_term(term1, term2, ps):
+        dims = copy.copy(term1.dims)
+        for i in range(len(term1.dims)):
+            if (term1.dims[i] == term2.dims[i]):
+                dims[i] = term1.dims[i]
+            else:
+                dims[i] = WC
         return Term(term1.level + 1,
                     dims,
-                    (term1, term2),
-                    term1.weight + term2.weight + len(indexes))
+                    term1.weight + term2.weight + sum_ps_value(ps),
+                    (term1, term2))
 
     ## work starts here
-    termsAll = get_terms(policyAll)
-
+    termsAll = get_terms(policyAll, patterns)
 
     leveled_terms = dict()
     for term in termsAll:
         add_to_dict(leveled_terms, term.level, term)
 
-    for level in range(MAX_LEVEL):
+    for level in range(Pyramid.nbits):
         if (level not in leveled_terms):
             continue
 
@@ -131,42 +162,40 @@ def get_leveled_terms(policyAll):
         ## enumerate a term
         for i in range(len(terms)):
             term_i = terms[i]
-            if (len(term_i.dims) == len(term_i.edges)):
-                continue
             ## enumerate the second term
             for j in range(i + 1, len(terms)):
                 term_j = terms[j]
-                if (len(term_j.dims) == len(term_j.edges)):
-                    continue
-                indexes = eq_dims(term_i, term_j)
-                if (len(indexes) > 0):
+                ps_ij = eq_patterns(term_i, term_j, patterns)
+                if (len(ps_ij) > 0):
                     ## heapq is min heap
-#                    heapq.heappush(matches, (-len(indexes) + len(term_i.edges) + len(term_j.edges), i, j, indexes))
-                    heapq.heappush(matches, (-len(indexes), i, j, indexes))
-#                    heapq.heappush(matches, (-len(indexes) + term_i.weight + term_j.weight, i, j, indexes))
+                    heapq.heappush(matches,
+                                   (-sum_ps_value(ps_ij), i, j, ps_ij))
 
         ## match up terms
         while len(matches) > 0:
-            tp, best_i, best_j, best_indexes = heapq.heappop(matches)
+            tp, best_i, best_j, best_ps = heapq.heappop(matches)
             term_i = terms[best_i]
             term_j = terms[best_j]
-            prev_len = len(best_indexes)
-            best_indexes.difference_update(set(term_i.edges))
-            best_indexes.difference_update(set(term_j.edges))
-            
-            if (len(best_indexes) != prev_len):
-                if (len(best_indexes) > 0):
+            prev_value = sum_ps_value(best_ps)
+            if (prev_value == 0):
+                continue
+            best_ps.difference_update(set(term_i.edges))
+            best_ps.difference_update(set(term_j.edges))
+            best_value = sum_ps_value(best_ps)
+
+            if (best_value != prev_value):
+                if (best_value > 0):
                     heapq.heappush(matches, 
-                                   (tp + len(best_indexes) - prev_len, 
+                                   (best_value,
                                     best_i, 
                                     best_j,
-                                    best_indexes))
+                                    best_ps))
             else:
-                term_k = mask_term(term_i, term_j, best_indexes)
+                term_k = mask_term(term_i, term_j, best_ps)
                 add_to_dict(leveled_terms, term_k.level, term_k)
-                for index in best_indexes:
-                    term_i.edges[index] = term_k
-                    term_j.edges[index] = term_k
+                for p in best_ps:
+                    term_i.edges[p] = term_k
+                    term_j.edges[p] = term_k
 
     return leveled_terms
 
@@ -321,7 +350,7 @@ def construct_pyramids(leveled_terms):
             recalc_weight(term.subs[1])
             term.weight = (term.subs[0].weight + 
                            term.subs[1].weight + 
-                           len(term.dims) - term.dims.count('*'))
+                           len(term.dims) - term.dims.count(WC))
 
     ## starts here
     pyramids = set()
@@ -366,15 +395,14 @@ def construct_pyramids(leveled_terms):
 
     print "visited", len(visited_terms)
 #    print "\n".join(str(t) for t in visited_terms)
-    print correct(pyramids)
+    print "before final_merge:", correct(pyramids)
 
     final_pyramid = final_merge(pyramids)
     if (final_pyramid == None):
-        print "WRONG"
+        print "WRONG FINAL"
     else:
-        print "FINAL"
+        print "after final_merge:", correct([final_pyramid])
 #        final_pyramid.show()
-        print correct([final_pyramid])
     return final_pyramid
 
 
@@ -488,45 +516,60 @@ def construct_term_blocks(leveled_terms):
                 
     return blocks
 
-def wildcard(policyAll):
-    leveled_terms = get_leveled_terms(policyAll)
 
+## the full wildcard algorithm starts here
+def wildcard(policyAll, patterns):
+    print "patterns"
+    for p in patterns:
+        p.show()
+
+    ## connect terms and assign their weights
+    leveled_terms = get_leveled_terms(policyAll, patterns)
+
+    ## count the min and max rules
     max_rules = 0
     min_rules = 0
     for level, terms in leveled_terms.items():
         for term in terms:
-            for i in range(policyAll.n):
-                if (term.dims[i] != '*') and (i not in term.edges):
-                    min_rules = min_rules + 1
-                if (term.subs == None):
-                    max_rules = max_rules + 1
+#            print str(term)
+            for p in patterns:
+                if (p.contain(term.dims)):
+                    if (p not in term.edges):
+                        min_rules = min_rules + p.value
+                    if (term.subs == None):
+                        max_rules = max_rules + p.value
 
     print "max_rules:", max_rules
     print "min_rules:", min_rules
 
+    ## merge pyramids based on connection terms
     final_pyramid = construct_pyramids(leveled_terms)
+
+    ## count number of used rules
     use_rules = 0
     if (final_pyramid != None):
         for term in final_pyramid.terms:
-            for i in range(policyAll.n):
-                if (term.dims[i] != '*'):
-                    if ((i not in term.edges) or 
-                        (term.edges[i] not in final_pyramid.terms)):
-                        use_rules = use_rules + 1
+            for p in patterns:
+                if (p.contain(term.dims)):
+                    if ((p not in term.edges) or 
+                        (term.edges[p] not in final_pyramid.terms)):
+                        use_rules = use_rules + p.value
     print "use_rules", use_rules
 
     
-input = sys.argv[1]
-p = readin_policies(input)
-Pyramid.nbits = int(sys.argv[2])
+input_filename = sys.argv[1]
+input = readin_policies(input_filename)
+if (input != None):
+    policies, patterns = input
+    Pyramid.nbits = int(sys.argv[2])
 
-option = "nanxi" # "ori"
-#option = "ori"
-if option == "nanxi":
-    wildcard(p)
-elif option == "ori":
-    num_rules, nrules = ipam(p)
-    #print "heuristics:", num_rules, " =", nrules
-    print "heuristics:", sum(nrules)
+    option = "nanxi" # "ori"
+#    option = "ori"
+    if option == "nanxi":
+        wildcard(policies, patterns)
+    elif option == "ori":
+        num_rules, nrules = ipam(policies)
+#        print "heuristics:", num_rules, " =", nrules
+        print "heuristics:", sum(nrules)
 
 

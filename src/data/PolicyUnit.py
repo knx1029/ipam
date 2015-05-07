@@ -421,9 +421,9 @@ if is_purdue:
                 src_units = analyze(entries, True)
                 dst_units = analyze(entries, False)
                 print "src_unit", len(src_units)
-                print src_units
+#                print src_units
                 print "dst_unit", len(dst_units)
-                print dst_units
+#                print dst_units
                 new_entries = minimum_rules(entries, src_units, dst_units)
                 print "len", len(entries), len(new_entries)
 #                print "\n".join(str(e) for e in entries)
@@ -444,9 +444,9 @@ else:
         src_units = analyze(entries, True)
         dst_units = analyze(entries, False)
         print "src_unit", len(src_units)
-#       print src_units
+       print src_units
         print "dst_unit", len(dst_units)
-#       print dst_units
+       print dst_units
         new_entries = minimum_rules(entries, src_units, dst_units)
         print "len", len(entries), len(new_entries)
     
