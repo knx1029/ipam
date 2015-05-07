@@ -468,6 +468,23 @@ def correct(pyramids):
     return True
 
 
+def assign_bits(pyramid):
+    pyramid.repr_all()
+
+    term2value = dict()
+    for term, bv in pyramid.term2bv.items():
+        def f(r, n):
+            if (r == None):
+                return WC
+            elif (n):
+                return '1'
+            else:
+                return '0'
+        vs = ""
+        for kth in range(bv.nbits):
+            vs = vs + f(bv.refs[kth], bv.negate[kth])
+        term2value[term] = vs
+    return term2value
 
 ## find the term blocks
 def construct_term_blocks(leveled_terms):
@@ -584,7 +601,10 @@ def wildcard(policies, patterns):
     final_pyramid = construct_pyramids(leveled_terms)
 
     ## bit assignment
-#    ips = assign_bits(final_pyramid)
+    ips = assign_bits(final_pyramid)
+#    for term,ip in ips.items():
+#        print str(term)
+#        print ip
 
     ## count number of used rules
     use_rules = 0
