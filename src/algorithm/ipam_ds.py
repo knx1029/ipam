@@ -4,11 +4,12 @@ WC = '*'
 
 class Pattern:
     id = 1
-    def __init__(self, dims, value):
+    ## values at each dimension and the weight
+    def __init__(self, dims, weight):
         self.id = Pattern.id
         Pattern.id = Pattern.id + 1
         self.dims = dims
-        self.value = value
+        self.weight = weight
 
     def __hash__(self):
         return self.id
@@ -19,7 +20,7 @@ class Pattern:
     def show(self):
         print "({}: [{}] : {})".format(self.id, 
                                   ",".join(self.dims),
-                                  self.value)
+                                  self.weight)
 
     def contain(self, other_dims):
         if (len(self.dims) != len(other_dims)):
@@ -30,12 +31,14 @@ class Pattern:
         return True
 
 class Policies:
+
     ## n is #dimension. m is the #hosts
     def __init__(self, n, m, values):
         self.n = n
         self.m = m
         self.values = values
 
+    ## get a policy with one dimension (=nth in self)
     def project(self, nth):
         def f(line):
             tokens = line.split(' ')
@@ -49,11 +52,14 @@ class Policies:
         nth_values = map(f, self.values)
         return Policies(1, self.m, nth_values)
 
+    ## get the values of host x
     def get_value(self, x):
         if (x >= self.n) or (x < 0):
             return None
         return self.values[x]
 
+
+    ## get the #hosts in each distinct combination of values in dims
     def count_values(self):
         counts = dict()
         for v in self.values:
@@ -66,14 +72,17 @@ class Policies:
 
 class Term:
     id = 1
-    def __init__(self, level, dims, weight, subs = None):
-        self.subs = subs
+
+    def __init__(self, level, dims, weight, sum_ps, subs = None):
+        self.id = Term.id
+        Term.id = Term.id + 1
         self.level = level
         self.dims = dims
         self.edges = dict()
-        self.id = Term.id
+        ## sum_ps is the total weights of patterns matched by this term
+        self.sum_ps = sum_ps
         self.weight = weight
-        Term.id = Term.id + 1
+        self.subs = subs
 
     def __hash__(self):
         return self.id
@@ -92,6 +101,11 @@ class Term:
 
 class BitValue:
 
+    ## n-bit value corresponding to a term
+    ## refs[i] = null means the i-th bit is wildcard
+    ## if negate[i] = True, then
+    ## the i-th bit equals the i-th bit of refs[i]
+    ## otherwise they are negation
     def __init__(self, nbits, term):
         self.nbits = nbits
         self.term = term
@@ -228,6 +242,7 @@ class BitValue:
             self.refs[i] = other_bv.term
             self.negate[i] = False
 
+    ## set the ref[kth] of this value to other_bv's ref[kth]
     def super_ref_other(self, ref2bv, kth, other_bv, negate = False):
         if (kth >= self.nbits) or (self.refs[kth] == None):
             return
@@ -241,6 +256,7 @@ class BitValue:
             neg = (neg != bv2.negate[kth])
             bv2 = ref2bv[bv2.refs[kth]]
         bv1.set_ref(kth, bv2, neg)
+
 
 class Pyramid:
 
@@ -307,8 +323,8 @@ class Pyramid:
                 print str(bv)
             print "--------"
 
+    ## shorten the reference chain
     def bv_repr(self, bits):
-        ## shorten the reference chain
         def dfs(bits, kth):
             if (bits.refs[kth] == None):
                 return None
@@ -327,7 +343,7 @@ class Pyramid:
         for i in range(Pyramid.nbits):
             dfs(bits, i)
 
-
+    ## shorten the reference chain for the bitvalue of the given term
     def repr(self, term):
         bv = self.term2bv[term]
         self.bv_repr(bv)
@@ -374,8 +390,10 @@ class Pyramid:
         bv1 = self.repr(term1)
         bv2 = other_py.repr(term2)
         bit_to_flip = -1
+        ## enumerate the bit_to_flip
         for i in range(self.level):
             if (bv1.refs[i] != None):
+                ## calculate the bitvalue after flipping
                 bv_prime = other_py.root.copy()
                 for j in range(Pyramid.nbits):
                     if (bv_prime.refs[j] != None):
@@ -386,19 +404,23 @@ class Pyramid:
                             bv_prime.set_ref(j, bv1, 
                                              negate = (i == j))
                 self.bv_repr(bv_prime)
+
+                ## check whether the bitvalue is contained in a spare bv
                 for sbv in self.spare_nodes:
                     if (sbv.level() >= mlevel):
                         continue
-                    if (sbv.contain(bv_prime)):
+                    if (sbv.contain(bv_prime) and
+                        (bit_to_flip < 0 or
+                         sbv.level() < spare_bv.level())):
 #                        print str(sbv), "contains", str(bv_prime)
                         bit_to_flip = i
                         spare_bv = sbv
-                        break
+#                        break
 
         if (bit_to_flip < 0):
             return None
 
-        ## add terms
+        ## union terms
         self.terms.extend(other_py.terms)
         self.terms.append(term_star)
 
@@ -437,22 +459,22 @@ class Pyramid:
         if (self.level < other_py.level):
             return other_py.merge(self, term2, term1, term_star, mlevel)
 
-        ## starts here
-
         ## if internal, then just checking
         if (self == other_py):
             return self._internal_merge(term1, term2, term_star)
 
+        ## check whether their wildcard positions conflict
         bv1 = self.repr(term1)
         bv2 = other_py.repr(term2)
         if (bv1.conflict(bv2)):
             return None
 
+        ## try fill in 
         py_star = self._fillin_merge(other_py, term1, term2, term_star, mlevel)
         if (py_star != None):
             return py_star
 
-        ## if not iternal, then assuming adding a new bit at the end
+        ## assuming adding a new bit at the end
         bit_to_flip = self.level
         if (bit_to_flip >= Pyramid.nbits):
             return None
@@ -487,6 +509,7 @@ class Pyramid:
                               new_root,
                               new_term2bv)
 
+        ## update spare nodes
         if (self.level > other_py.level):
             new_pyramid.bv_repr(new_root)
             new_pyramid.bv_repr(other_py.root)

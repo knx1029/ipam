@@ -10,13 +10,22 @@ def two(n1, n2):
 
 
 def rand(n, ms):
-    print n, len(ms)
+    print n, len(ms), sum(ms)
 #    random.seed(1029)
     random.seed()
     for i in range(0, n):
         vs = map(lambda(m): random.randint(1, m),
                  ms)
         print " ".join(str(v) for v in vs)
+
+    for i in range(0, len(ms)):
+        for k in range(ms[i]):
+            for j in range(len(ms)):
+                if (j == i):
+                    print k + 1,
+                else:
+                    print 0,
+            print 1
 
 def bld_group(nbuildings, ngroups, nusers_per_group):
     def rand_num_bld():
