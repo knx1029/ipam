@@ -307,6 +307,8 @@ class Pyramid:
 
     ## merge internally
     def _internal_merge(self, term1, term2, term_star):
+#        print "INTERNAL"
+
         bv1 = self.repr(term1)
         bv2 = self.repr(term2)
 
@@ -334,6 +336,8 @@ class Pyramid:
     def _fillin_merge(self, other_py, term1, term2, term_star, mlevel):
         if (len(self.spare_nodes) == 0):
             return None
+#        print "FILL IN"
+
         max_level = max(map(lambda(x):x.level(), self.spare_nodes))
         if (max_level < other_py.level):
             return None
@@ -341,7 +345,7 @@ class Pyramid:
         bv1 = self.repr(term1)
         bv2 = other_py.repr(term2)
         bit_to_flip = -1
-        for i in range(self.level - 1):
+        for i in range(self.level):
             if (bv1.refs[i] != None):
                 bv_prime = other_py.root.copy()
                 for j in range(Pyramid.nbits):
@@ -352,7 +356,7 @@ class Pyramid:
                         else:
                             bv_prime.set_ref(j, bv1, 
                                              negate = (i == j))
-                
+                self.bv_repr(bv_prime)
                 for sbv in self.spare_nodes:
                     if (sbv.level() >= mlevel):
                         continue
@@ -365,7 +369,10 @@ class Pyramid:
         if (bit_to_flip < 0):
             return None
 
+        ## add terms
         self.terms.extend(other_py.terms)
+        self.terms.append(term_star)
+
         ## update term2bv
         self.term2bv.update(other_py.term2bv)
         for i in range(Pyramid.nbits):
@@ -379,13 +386,14 @@ class Pyramid:
         bit_value_star.set_wildcard(bit_to_flip)
         self.term2bv[term_star] = bit_value_star
 
+        ## update spare_nodes
         self.spare_nodes.update(other_py.spare_nodes)
         self.spare_nodes.remove(spare_bv)
         ## add back the leftover
-        if (sbv_level > other_py.level):
-            self.bv_repr(new_sbvs)
+        if (spare_bv.level() > other_py.level):
+            self.bv_repr(spare_bv)
             self.bv_repr(other_py.root)
-            new_sbvs = sbv.difference(other_py.root)
+            new_sbvs = spare_bv.difference(other_py.root)
             for new_sbv in new_sbvs:
                 self.spare_nodes.add(new_sbv)
         return self

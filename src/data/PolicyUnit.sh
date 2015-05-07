@@ -1,14 +1,16 @@
 if [ "$1" == "gatech" ]; then
-    for f in  ../../GaTechAcl/*
+    echo "" > gatech.m_summary
+    for f in  ../../../QoS/GaTechAcl/*
     do
-	echo $f
+	echo $f >> gatech.m_summary
 #       python Acl2Attr.py $f s > ${f}_s.summary
 #       python Acl2Attr.py $f d > ${f}_d.summary
-	python PolicyUnit.py $f s g > ${f}_unit_s.summary
+#	python PolicyUnit.py $f s g > ${f}_unit_s.summary
+	python PolicyUnit.py $f m g >> gatech.m_summary
     done
 
-    echo "mv"
-    mv ../../GaTechAcl/*.summary ./
+#    echo "mv"
+#    mv ../../GaTechAcl/*.summary ./
 fi
 
 if [ "$1" == "purdue" ]; then

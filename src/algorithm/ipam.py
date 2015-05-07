@@ -271,7 +271,7 @@ def merge_pyramids(pyramids, term, visited_terms):
 #    py2.show()
 
 #    print "\n>>  merge by", str(term)
-#    print py1.id, py2.id
+#    print py1.id, py2.id,
 
     py_star = py1.merge(py2,
                         term.subs[0], 
@@ -295,8 +295,8 @@ def merge_pyramids(pyramids, term, visited_terms):
         visited_terms.add(term.subs[1])
         visited_terms.add(term)
 
-#        print "->", py_star.id
-#        py_star.show()
+ #       print "->", py_star.id
+ #       py_star.show()
 
         return True
 
@@ -320,7 +320,8 @@ def construct_pyramids(leveled_terms):
             recalc_weight(term.subs[0])
             recalc_weight(term.subs[1])
             term.weight = (term.subs[0].weight + 
-                           term.subs[1].weight + 1)
+                           term.subs[1].weight + 
+                           len(term.dims) - term.dims.count('*'))
 
     ## starts here
     pyramids = set()
@@ -329,7 +330,10 @@ def construct_pyramids(leveled_terms):
     for level, terms in leveled_terms.items():
         for term in terms:
             if (term.subs == None):
-                pyramids.add(Pyramid.one_term_pyramid(term))
+                py = Pyramid.one_term_pyramid(term)
+                pyramids.add(py)
+#                py.show()
+#                print ""
             else:
                 connections.append(Conn(term))
 
@@ -345,7 +349,7 @@ def construct_pyramids(leveled_terms):
         if (old_w > conn.term.weight):
             heapq.heappush(connections, conn)
             continue
-#        print "connection", conn.term
+#        print "\nconnection", str(conn.term),
 
         temp_pyramids = {p.copy() for p in pyramids}
         temp_visited_terms = copy.copy(visited_terms)
@@ -373,10 +377,12 @@ def construct_pyramids(leveled_terms):
         print correct([final_pyramid])
     return final_pyramid
 
+
+## check whether the pyramids are valid
 def check_valid(pyramids):
     spare_counts = {k : 0 for k in range(Pyramid.nbits)}
     spare_counts[Pyramid.nbits] = 1
-    usedup_level = -1
+    usedup_level = Pyramid.nbits + 1
     level = Pyramid.nbits
     for py in sorted(pyramids, cmp = lambda x,y: (y.level - x.level)):
         x = spare_counts[py.level]
@@ -389,8 +395,8 @@ def check_valid(pyramids):
             return False, None
         spare_counts[level] = x - 1
 
-        if (x == 0):
-            usedup_level = max(usedup_level, level)
+        if (x == 0) and (usedup_level > Pyramid.nbits):
+            usedup_level = level
 
         for bv in py.spare_nodes:
             bv_level = bv.level()
@@ -492,7 +498,7 @@ def wildcard(policyAll):
             for i in range(policyAll.n):
                 if (term.dims[i] != '*') and (i not in term.edges):
                     min_rules = min_rules + 1
-                if (term.weight == 1):
+                if (term.subs == None):
                     max_rules = max_rules + 1
 
     print "max_rules:", max_rules
