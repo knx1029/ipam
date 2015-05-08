@@ -18,7 +18,7 @@ class Pattern:
         return str(self.id)
 
     def show(self):
-        print "({}: [{}] : {})".format(self.id, 
+        print "(pid{} [{}] : {})".format(self.id, 
                                   ",".join(self.dims),
                                   self.weight)
 
@@ -522,10 +522,19 @@ class Pyramid:
 
 
 class Conn:
+    cmp_dim = -1
+
     def __init__(self, term):
         self.term = term
 
     def __cmp__(self, other_conn):
+        if (Conn.cmp_dim >= 0):
+            if ((self.term.dims[Conn.cmp_dim] != WC) and 
+                (other_conn.term.dims[Conn.cmp_dim] == WC)):
+                return -1
+            elif ((self.term.dims[Conn.cmp_dim] == WC) and
+                  (other_conn.term.dims[Conn.cmp_dim] != WC)):
+                return 1
         if (self.term.weight != other_conn.term.weight):
             return other_conn.term.weight - self.term.weight
         else:

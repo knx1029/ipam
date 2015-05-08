@@ -1,150 +1,7 @@
 import sys
 import operator
 import copy
-
-class Entry:
-    
-    def __init__(self, tokens, is_acl = True, standard = False):
-        self.marked = False
-        if (is_acl):
-            int_tokens = map(lambda(x): int(x), tokens)
-            self.sip = int_tokens[0]
-            self.dip = int_tokens[1]
-            self.sport = (int_tokens[2], int_tokens[3])
-            self.dport = (int_tokens[4], int_tokens[5])
-            self.proto = 0
-            self.permit = int_tokens[6]
-        elif (standard):
-            id = 0
-            self.permit = (tokens[id] == "permit")
-            id = id + 1
-            if (id + 1 < len(tokens) and ("." in tokens[id + 1])):
-                self.sip = strip2intip(tokens[id], tokens[id + 1])
-            elif (tokens[id] == "any"):
-                self.sip = 0
-            else:
-                self.sip = strip2intip("host", tokens[id])
-            self.dip = 0
-            self.proto = 0
-            self.sport = self.dport = None
-        else:
-            id = 0
-            self.permit = (tokens[id] == "permit")
-            id = id + 1
-            self.proto = tokens[id]
-            id = id + 1
-            ## parse sip
-            if (tokens[id] == "any"):
-                self.sip = 0
-                id = id + 1
-            else:
-                self.sip = strip2intip(tokens[id], tokens[id + 1])
-                id = id + 2
-
-            ## sparse sport
-            self.sport = None
-            if (id + 1 < len(tokens)):
-                if (tokens[id] == 'eq'):
-                    self.sport = tokens[id + 1]
-                    id = id + 2
-                elif (tokens[id] == 'range'):
-                    self.sport = (tokens[id + 1], tokens[id + 2])
-                    id = id + 3
-
-            ## parse dip
-            if (tokens[id] == "any"):
-                self.dip = 0
-                id = id + 1
-            else:
-                self.dip = strip2intip(tokens[id], tokens[id + 1])
-                id = id + 2
-
-            self.dport = None
-            if (id + 1 < len(tokens)):
-                if (tokens[id] == 'eq'):
-                    self.dport = tokens[id + 1]
-                    id = id + 2
-                elif (tokens[id] == 'range'):
-                    self.dport = (tokens[id + 1], tokens[id + 2])
-                    id = id + 3
-                
-
-    def eq(self, e):
-        return (self.sip == e.sip and
-                self.dip == e.dip and
-                self.sport == e.sport and
-                self.dport == e.dport and
-                self.proto == e.proto and
-                self.permit == e.permit)
-
-    def src_matched(self, sip):
-        while (sip > self.sip):
-            sip = (sip - 1) / 2
-        return sip == self.sip
-
-    def dst_matched(self, dip):
-        while (dip > self.dip):
-            dip = (dip - 1) / 2
-        return dip == self.dip
-
-    def src_group(self, e):
-        return (#self.sip != e.sip and
-                self.dip == e.dip and
-                self.sport == e.sport and
-                self.dport == e.dport and
-                self.proto == e.proto and
-                self.permit == e.permit)
-
-    def dst_group(self, e):
-        return (self.sip == e.sip and
-                #self.dip != e.dip and
-                self.sport == e.sport and
-                self.dport == e.dport and
-                self.proto == e.proto and
-                self.permit == e.permit)
-        
-    def __str__(self):
-        if self.permit:
-            return "%d:%s -> %d:%s" % (self.sip, 
-                                       str(self.sport),
-                                       self.dip,
-                                       str(self.dport))
-        else:
-            return "%d:%s \> %d:%s" % (self.sip, 
-                                       str(self.sport),
-                                       self.dip,
-                                       str(self.dport))
-
-def strip2intip(s1, s2):
-    def f(s):
-        ls = s.rsplit('.')
-        x = 0
-        for l in ls:
-            x = x << 8
-            x = x + int(l)
-        return x
-    try:
-        y = 0
-        if (s1 == "host"):
-            y = f(s2) + (1 << 32) - 1
-        else:
-            base = (1<<32) / (f(s2) + 1) - 1
-            y = f(s1) / (f(s2) + 1) + base
-    except ValueError, e:
-        print "ERROR", s1, s2
-        raise e
-    return y
-
-def intip2str(ip):
-    s = ""
-    while (ip > 0):
-        if (ip % 2 == 0):
-            s = "1" + s
-        else:
-            s = "0" + s
-        ip = (ip - 1) / 2
-    s = s + "*" * (32 - len(s))
-    return s
+from utils import *
 
 def readin(input):
     fin = open(input, "r")
@@ -257,35 +114,54 @@ def analyze(entries, use_sip):
     sips = closed_sip_set(sips)
 
     units = []
+    unit_entries = []
     ## iterate over all sip prefixes
     for sip1 in sips:
+        matched_entries = []
+        ## find all the matching rules
+        for ei in entries:
+            if ((use_sip and ei.src_matched(sip1)) or
+                ((not use_sip) and ei.dst_matched(sip1))):
+                shadowed = False
+                for ej in matched_entries:
+                    if ((use_sip and ei.src_shadow(ej)) or
+                        ((not use_sip) and ei.dst_shadow(ej))):
+                        shadowed = True
+                        break
+                if (not shadowed):
+                    matched_entries.append(ei)
+                    
+#        print intip2ip(sip1)
+#        print "\n".join(str(e) for e in matched_entries)
+#        print ""
+
         found = False
         ## examine whether sip belongs to an existing units
-        for unit in units:
-            sip2 = unit[0]
+        for ui in range(len(units)):
+            unit = units[ui]
+            uentries = unit_entries[ui]
+            if (len(uentries) != len(matched_entries)):
+                continue
+
             equal = True
-            entries_i = []
-            for ei in entries:
-                if ((use_sip and ei.src_matched(sip1)) or
-                    ((not use_sip) and ei.dst_matched(sip1))):
-                    matched = False
-                    for ej in entries:
-                        if ((use_sip and ei.src_group(ej) and ej.src_matched(sip2)) or
-                            ((not use_sip) and ei.dst_group(ej) and ej.dst_matched(sip2))):
-                            matched = True
-                            break
-                    if (not matched):
-                        equal = False
-                        break
+            ## priority must match
+            for index in range(len(uentries)):
+                ei = uentries[index]
+                ej = matched_entries[index]
+                if ((use_sip and (not ei.src_group(ej))) or
+                    ((not use_sip) and (not ei.dst_group(ej)))):
+                    equal = False
             if (equal):
                 found = True
                 unit.append(sip1)
                 break
         if (not found):
             units.append([sip1])
+            unit_entries.append(matched_entries)
 
     if (0 not in sips):
         units.append([0])
+        unit_entries.append([])
         
 #    print "units", len(units)
 #    for unit in units:
@@ -421,15 +297,14 @@ if is_purdue:
                 src_units = analyze(entries, True)
                 dst_units = analyze(entries, False)
                 print "src_unit", len(src_units)
-#                print src_units
+                print src_units
                 print "dst_unit", len(dst_units)
-#                print dst_units
+                print dst_units
                 new_entries = minimum_rules(entries, src_units, dst_units)
                 print "len", len(entries), len(new_entries)
 #                print "\n".join(str(e) for e in entries)
 #                print "......"
 #                print "\n".join(str(e) for e in new_entries)
-
 
 
 else:
@@ -449,4 +324,5 @@ else:
         print dst_units
         new_entries = minimum_rules(entries, src_units, dst_units)
         print "len", len(entries), len(new_entries)
+#        print "\n".join(str(e) for e in new_entries)
     

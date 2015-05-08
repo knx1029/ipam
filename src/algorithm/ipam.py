@@ -117,7 +117,7 @@ def get_leveled_terms(policies, patterns):
             for i in range(0, Pyramid.nbits):
                 j = (1<<i)
                 if (c & j) > 0:
-                    term = Term(i, v.split(' '), weight, weight)
+                    term = Term(i, v.split(' '), 0, weight)
                     terms.append(term)
         return terms
 
@@ -264,8 +264,8 @@ def merge_pyramids(pyramids, term, visited_terms):
         ## remove py1, py2 and add py_star
         py_star.repr_all()
 
- #       print "->", py_star.id
- #       py_star.show()
+#        print "->", py_star.id
+#        py_star.show()
 
         if (py1 in pyramids):
             pyramids.remove(py1)
@@ -355,7 +355,6 @@ def construct_pyramids(leveled_terms):
                 connections.append(Conn(term))
 
     print "all", len(pyramids) + len(connections)
-
     ## use non-atomic term (i.e., connection) to merge pyramids
     ## sort those terms based on weight in descending order
     visited_terms = set()
@@ -486,92 +485,6 @@ def assign_bits(pyramid):
         term2value[term] = vs
     return term2value
 
-## find the term blocks
-def construct_term_blocks(leveled_terms):
-
-    def weight_the_term(term):
-        return (-term.weight, term)
-
-    ## check whether the term and its subtree 
-    ## are visited before or not
-    def is_indep(term):
-        if (term in visited_terms):
-            return False
-        if (term.subs != None):
-            return is_indep(term.subs[0]) and is_indep(term.subs[1])
-        return True
-
-    ## mark the term and its subtree as visited
-    def mark_visited(term):
-        if (term in visited_terms):
-            return
-        visited_terms.add(term)
-        if (term.subs != None):
-            mark_visited(term.subs[0])
-            mark_visited(term.subs[1])
-
-    def get_subtree(term):
-        ret = {term}
-        if (term.subs != None):
-            ret.update(get_subtree(term.subs[0]))
-            ret.update(get_subtree(term.subs[1]))
-        return ret
-
-    ## work starts here
-    visited_terms = set()
-    blocks = []
-    for level in sorted(leveled_terms.keys(), reverse = True):
-        terms = leveled_terms[level]
-        indep_terms = map(weight_the_term, terms)
-        heapq.heapify(indep_terms)
-
-        while len(indep_terms) > 0:
-            _, best_term = heapq.heappop(indep_terms)
-            if (not is_indep(best_term)):
-                continue
-
-            mark_visited(best_term)
-            one_block = [(best_term, None)]
-            blocks.append(one_block)
-
-            continue
-
-            ## expand
-            expanded_terms = [(-best_term.weight,
-                                best_term,
-                                None,
-                                None)]
-            expanded_term_set = {best_term}
-            while len(expanded_terms) > 0:
-                _, cur_term, last_term, sub_index = heapq.heappop(expanded_terms)
-                if (cur_term.subs == None):
-                    continue
-
-                if (sub_index != None):
-                    if (not is_indep(cur_term.subs[sub_index])):
-                        continue
-                    mark_visited(cur_term)
-                    one_block.append((cur_term, last_term))
-
-                for k1 in range(2):
-                    sub_term = cur_term.subs[k1]
-                    for e, new_term in sub_term.edges.items():
-                        if ((new_term in visited_terms) or
-                            (new_term in expanded_term_set)):
-                            continue
-                        for k2 in range(2):
-                            if (new_term.subs[k2] != sub_term):
-                                if (is_indep(new_term.subs[k2])):
-                                    heapq.heappush(expanded_terms,
-                                                   (-new_term.weight,
-                                                     new_term,
-                                                     cur_term,
-                                                     k2))
-                                    expanded_term_set.add(new_term)
-                
-    return blocks
-
-
 ## the full wildcard algorithm starts here
 def wildcard(policies, patterns):
     print "patterns"
@@ -609,12 +522,15 @@ def wildcard(policies, patterns):
     ## count number of used rules
     use_rules = 0
     if (final_pyramid != None):
-        for term in final_pyramid.terms:
-            for p in patterns:
+        for p in patterns:
+            p.show()
+            for term in final_pyramid.terms:
                 if (p.contain(term.dims)):
                     if ((p not in term.edges) or 
                         (term.edges[p] not in final_pyramid.terms)):
                         use_rules = use_rules + p.weight
+                        print ips[term],
+            print ""
     print "use_rules", use_rules
 
     
@@ -628,6 +544,9 @@ if (input != None):
     option = "nanxi" # "ori"
 #    option = "ori"
     if option == "nanxi":
+        if (len(sys.argv) > 3):
+            Conn.cmp_bits = int(sys.argv[3])
+                
         wildcard(policies, patterns)
     elif option == "ori":
         num_rules, nrules = ipam(policies)
