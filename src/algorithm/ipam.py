@@ -3,8 +3,29 @@ import copy
 import heapq
 from ipam_ds import *
 
+
+def readin(input_filename, multi = False):
+    fin = open(input_filename, "r")    
+    if (multi):
+        inputs = []
+        while (True):
+            line = fin.readline()
+            if (line == None) or (len(line) == 0):
+                break
+            nbits = int(line)
+            input = readin_policies(fin)
+            if (input == None):
+                return None
+            inputs.append((input[0], input[1], nbits))
+        fin.close()
+        return inputs
+    else:
+        input = readin_policies(fin)
+        fin.close()
+        return input
+
 ## read in the policy
-def readin_policies(input_filename):
+def readin_policies(fin):
     ## input uses 0 to stand for * to denote patterns
     def strd(d):
         if (d == 0): 
@@ -13,7 +34,6 @@ def readin_policies(input_filename):
             return str(d)
 
     ## starts here
-    fin = open(input_filename, "r")    
     line = fin.readline()
     tokens = line.split(' ')
     ## number of elements in the domain
@@ -487,9 +507,9 @@ def assign_bits(pyramid):
 
 ## the full wildcard algorithm starts here
 def wildcard(policies, patterns):
-    print "patterns"
-    for p in patterns:
-        p.show()
+#    print "patterns"
+#    for p in patterns:
+#        p.show()
 
     ## connect terms and assign their weights
     leveled_terms = get_leveled_terms(policies, patterns)
@@ -507,9 +527,6 @@ def wildcard(policies, patterns):
                     if (term.subs == None):
                         max_rules = max_rules + p.weight
 
-    print "max_rules:", max_rules
-    print "min_rules:", min_rules
-
     ## merge pyramids based on connection terms
     final_pyramid = construct_pyramids(leveled_terms)
 
@@ -523,34 +540,50 @@ def wildcard(policies, patterns):
     use_rules = 0
     if (final_pyramid != None):
         for p in patterns:
-            p.show()
+#            p.show()
+            cterm = 0
             for term in final_pyramid.terms:
                 if (p.contain(term.dims)):
                     if ((p not in term.edges) or 
                         (term.edges[p] not in final_pyramid.terms)):
+                        cterm = cterm + 1
                         use_rules = use_rules + p.weight
-                        print ips[term],
-            print ""
-    print "use_rules", use_rules
+#                        print ips[term],
+#            print ""
+            print "pattern", cterm
 
+    print "max_rules:", max_rules
+    print "min_rules:", min_rules
+    print "use_rules", use_rules
+    print ""
     
 input_filename = sys.argv[1]
-input = readin_policies(input_filename)
+mode = sys.argv[2]
 
-if (input != None):
-    policies, patterns = input
-    Pyramid.nbits = int(sys.argv[2])
+if (mode == 's'):
+    input = readin(input_filename)
+    if (input != None):
+        policies, patterns = input
+        Pyramid.nbits = int(sys.argv[3])
 
-    option = "nanxi" # "ori"
-#    option = "ori"
-    if option == "nanxi":
-        if (len(sys.argv) > 3):
-            Conn.cmp_bits = int(sys.argv[3])
+        option = "nanxi" # "ori"
+    #    option = "ori"
+        if option == "nanxi":
+            if (len(sys.argv) > 4):
+                Conn.cmp_bits = int(sys.argv[4])
                 
-        wildcard(policies, patterns)
-    elif option == "ori":
-        num_rules, nrules = ipam(policies)
-#        print "heuristics:", num_rules, " =", nrules
-        print "heuristics:", sum(nrules)
+            wildcard(policies, patterns)
+        elif option == "ori":
+            num_rules, nrules = ipam(policies)
+        #        print "heuristics:", num_rules, " =", nrules
+            print "heuristics:", sum(nrules)
+else:
+    inputs = readin(input_filename, True)
+    if (inputs != None):
+        for (policies, patterns, nbits) in inputs:
+            Pyramid.nbits = nbits                
+            wildcard(policies, patterns)
+
+
 
 

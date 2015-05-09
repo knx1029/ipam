@@ -1,10 +1,11 @@
 import sys
+import math
 from utils import *
 
 class Input:
     threshold = (1<<32) - 1
 
-    def __init__(self, name, sunit, dunit, entries):
+    def __init__(self, name, sunit, dunit, entries, len_str):
         if ("ACL" in name):
             name = name.replace("ACL", "")
             self.name = name.replace("", "")
@@ -13,6 +14,7 @@ class Input:
         self.sunit = sunit
         self.dunit = dunit
         self.entries = entries
+        self.len_remark = len_str
 
     def _get_ips(self):
         def expand(p):
@@ -38,7 +40,7 @@ class Input:
 
 
     ## show the disjoint input
-    def show_disjoint(self, ext):
+    def show_disjoint(self, fout):
         def find_best(ip, units):
             best_i, best_pi = -1, None
             for i in range(len(units)):
@@ -59,9 +61,10 @@ class Input:
             return w
 
         ## starts here
-        fout = open(self.name + ext, "w")
-
         ips = self._get_ips()
+        nbits = int(math.ceil(math.log(len(ips))/math.log(2.0) - 1e-9))
+        line = str(nbits) + "\n"
+        fout.write(line)
         line = "{0} {1} {2}\n".format(str(len(ips)), 
                                     2,
                                     str(len(self.sunit) + len(self.dunit)))
@@ -83,10 +86,9 @@ class Input:
             line = "0 {0} {1}\n".format(str(i + 1), str(w))
             fout.write(line)
 
-        fout.close()
 
     ## show the joint input
-    def show_joint(self, ext):
+    def show_joint(self, fout):
         def find_all(ip, units):
             iset = set()
             for i in range(len(units)):
@@ -105,9 +107,12 @@ class Input:
             return w
 
         ## starts here
-        filename = self.name + ext
-        fout = open(filename, "w")
         ips = self._get_ips()
+
+        nbits = int(math.ceil(math.log(len(ips))/math.log(2.0) - 1e-9))
+        line = str(nbits) + "\n"
+        fout.write(line)
+
         ls = len(self.sunit)
         ndims = len(self.sunit) + len(self.dunit)
         line = "{0} {1} {2}\n".format(str(len(ips)),
@@ -131,9 +136,9 @@ class Input:
             w = count_weight(self.sunit[i][0], True)
             for j in range(ndims):
                 if (j == i):
-                    values[i] = 2
+                    values[j] = 2
                 else:
-                    values[i] = 0
+                    values[j] = 0
             line = " ".join(str(v) for v in values)
             line = "{0} {1}\n".format(line, w)
             fout.write(line)
@@ -142,14 +147,12 @@ class Input:
             w = count_weight(self.dunit[i][0], False)
             for j in range(ndims):
                 if (j == i + ls):
-                    values[i] = 2
+                    values[j] = 2
                 else:
-                    values[i] = 0
+                    values[j] = 0
             line = " ".join(str(v) for v in values)
             line = "{0} {1}\n".format(line, w)
             fout.write(line)
-
-        fout.close()
 
 
 
@@ -175,7 +178,7 @@ def gen_inputs(acl_str, snum_str, sunit_str, dnum_str, dunit_str, len_str, rules
 
     entries = map(lambda(x):Entry.parse(x), rules)
 #    print "\n".join(e.readable_str() for e in entries)
-    return Input(acl_str, sunit, dunit, entries)
+    return Input(acl_str, sunit, dunit, entries, len_str)
 
 
 
@@ -215,7 +218,7 @@ def readin(filename):
                 dunit_str = None
                 len_str = None
                 rules = None
-                break
+#                break
             acl_str = line
             snum_str = fin.readline()
             sunit_str = fin.readline()
@@ -237,12 +240,52 @@ def readin(filename):
     return inputs
 
 
+def eval(inputs, ipam_filename):
+    fipam = open(ipam_filename, "r")
+    for input in inputs:
+        pcount = []
+        while (True):
+            line = fipam.readline()
+            if (line == None) or (len(line) == 0):
+                break
+            if ("max_rules" in line) and (len(pcount) > 0):
+                break
+            if ("pattern" in line):
+                pc = int(line.replace("pattern ", ""))
+                pcount.append(pc)
 
-filename = sys.argv[1]
+        w = 0
+        for e in input.entries:
+            for si in range(len(input.sunit)):
+                for di in range(len(input.dunit)):
+                    if ((e.sip == input.sunit[si][0]) and 
+                        (e.dip == input.dunit[di][0])):
+                        w = w + pcount[si] * pcount[di - len(input.sunit)]
+        print input.name
+        print input.len_remark, "ipam", w
+        print ""
+                        
+                
+    fipam.close()
+
+
+
+input_filename = sys.argv[1]
 mode = sys.argv[2]
-inputs = readin(filename)
-for input in inputs:
+inputs = readin(input_filename)
+
+if ("s" in mode):
     if (mode == "d"):
-        input.show_disjoint(".dpu")
+        output_filename = input_filename + ".dpu"
     else:
-        input.show_joint(".jpu")
+        output_filename = input_filename + ".jpu"
+    fout = open(output_filename, "w")
+    for input in inputs:
+        if (mode == "d"):
+            input.show_disjoint(fout)
+        else:
+            input.show_joint(fout)
+    fout.close()
+elif ("c" in mode):
+    ipam_filename = sys.argv[3]
+    eval(inputs, ipam_filename)
