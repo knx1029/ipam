@@ -517,17 +517,21 @@ def wildcard(policies, patterns):
     ## count the min and max rules
     max_rules = 0
     min_rules = 0
-    for level, terms in leveled_terms.items():
-        for term in terms:
-#            print str(term)
-            for p in patterns:
+    for p in patterns:
+        cterm = 0
+        for level, terms in leveled_terms.items():
+            for term in terms:
+                #print str(term)
                 if (p.contain(term.dims)):
                     if (p not in term.edges):
                         min_rules = min_rules + p.weight
+                        cterm = cterm + 1
                     if (term.subs == None):
                         max_rules = max_rules + p.weight
+        print "min_pattern", cterm
 
     ## merge pyramids based on connection terms
+#    final_pyramid = None
     final_pyramid = construct_pyramids(leveled_terms)
 
     ## bit assignment
@@ -550,7 +554,7 @@ def wildcard(policies, patterns):
                         use_rules = use_rules + p.weight
 #                        print ips[term],
 #            print ""
-            print "pattern", cterm
+            print "ipam_pattern", cterm
 
     print "max_rules:", max_rules
     print "min_rules:", min_rules

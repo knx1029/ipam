@@ -243,26 +243,34 @@ def readin(filename):
 def eval(inputs, ipam_filename):
     fipam = open(ipam_filename, "r")
     for input in inputs:
-        pcount = []
+        ipam_pcount = []
+        min_pcount = []
         while (True):
             line = fipam.readline()
             if (line == None) or (len(line) == 0):
                 break
-            if ("max_rules" in line) and (len(pcount) > 0):
+            if ("max_rules" in line) and (len(ipam_pcount) > 0):
                 break
-            if ("pattern" in line):
-                pc = int(line.replace("pattern ", ""))
-                pcount.append(pc)
+            if ("min_pattern" in line):
+                pc = int(line.split(" ")[1])
+                min_pcount.append(pc)
+            if ("ipam_pattern" in line):
+                pc = int(line.split(" ")[1])
+                ipam_pcount.append(pc)
 
-        w = 0
+        ipam_w = 0
+        min_w = 0
         for e in input.entries:
             for si in range(len(input.sunit)):
                 for di in range(len(input.dunit)):
                     if ((e.sip == input.sunit[si][0]) and 
                         (e.dip == input.dunit[di][0])):
-                        w = w + pcount[si] * pcount[di - len(input.sunit)]
+                        ipam_w = ipam_w + ipam_pcount[si] * ipam_pcount[di - len(input.sunit)]
+                        min_w = min_w + min_pcount[si] * min_pcount[di - len(input.sunit)]
         print input.name
-        print input.len_remark, "ipam", w
+        print input.len_remark, 
+        print "min", min_w
+        print "ipam", ipam_w
         print ""
                         
                 

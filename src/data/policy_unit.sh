@@ -1,4 +1,4 @@
-if [ "$1" == "gatech" ]; then
+if [ "$1" == "gbatech" ]; then
     echo "" > gatech.m_summary
     for f in  ../../../QoS/GaTechAcl/*
     do
