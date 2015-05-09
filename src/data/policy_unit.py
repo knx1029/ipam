@@ -9,7 +9,8 @@ def readin(input):
     entries = []
     for line in fin:
         tokens = line.rsplit(' ')
-        entry = Entry(tokens, True)
+        entry = Entry()
+        entry.set_fields(tokens, True)
         found = False
         for e in entries:
             if (e.eq(entry)):
@@ -47,7 +48,8 @@ def readin_purdue(input):
             continue
         if (tokens[0] == "remark"):
             continue
-        entry = Entry(tokens, False, is_standard)
+        entry = Entry()
+        entry.set_fields(tokens, False, is_standard)
         entries.append(entry)
 
     if (len(entries) > 0):
@@ -324,5 +326,5 @@ else:
         print dst_units
         new_entries = minimum_rules(entries, src_units, dst_units)
         print "len", len(entries), len(new_entries)
-#        print "\n".join(str(e) for e in new_entries)
+        print "\n".join(str(e) for e in new_entries)
     
