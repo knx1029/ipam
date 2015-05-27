@@ -38,6 +38,49 @@ class Input:
 
         return ips
 
+    def show_sizes(self):
+        ips = self._get_ips()
+        nbits = int(math.ceil(math.log(len(ips))/math.log(2.0) - 1e-9))
+        _, _, acount = self.show_unit_size()
+        print len(ips), ",", nbits, ",", len(self.sunit), ",", len(self.dunit), ",", acount[0], ",", acount[-1],
+
+    def show_unit_size(self):
+        def find_best(ip, units):
+            best_i, best_pi = -1, None
+            for i in range(len(units)):
+                unit = units[i]
+                for p in unit:
+                    if (ip_contain(p, ip) and 
+                        ((best_pi == None) or (p > best_pi))):
+                        best_i = i
+                        best_pi = p
+            return best_i
+
+        def add_one(d, k):
+            if (k in d):
+                d[k] = d[k] + 1
+            else:
+                d[k] = 1
+
+        ## starts here
+        ips = self._get_ips()
+        if len(ips) == 0:
+            return
+        scount = dict()
+        dcount = dict()
+        acount = dict()
+        for ip in ips:
+            best_i = find_best(ip, self.sunit)
+            best_j = find_best(ip, self.dunit)
+            add_one(scount, best_i)
+            add_one(dcount, best_j)
+            add_one(acount, (best_i, best_j))
+
+        outputs = sorted(scount.values())
+        outputd = sorted(dcount.values())
+        outputa = sorted(acount.values())
+        return outputs, outputd, outputa
+
 
     ## show the disjoint input
     def show_disjoint(self, fout):
@@ -62,6 +105,9 @@ class Input:
 
         ## starts here
         ips = self._get_ips()
+        if len(ips) == 0:
+            return
+        print len(ips)
         nbits = int(math.ceil(math.log(len(ips))/math.log(2.0) - 1e-9))
         line = str(nbits) + "\n"
         fout.write(line)
@@ -108,7 +154,9 @@ class Input:
 
         ## starts here
         ips = self._get_ips()
-
+        if (len(ips) == 0):
+            return
+        print len(ips)
         nbits = int(math.ceil(math.log(len(ips))/math.log(2.0) - 1e-9))
         line = str(nbits) + "\n"
         fout.write(line)
@@ -241,10 +289,13 @@ def readin(filename):
 
 
 def eval(inputs, ipam_filename):
+    print "name, original_rules, bitsegmentation, opt, prefix, wildcard, ips, bits, sunit, dunit, min_group_size, max_group_size"
+
     fipam = open(ipam_filename, "r")
     for input in inputs:
         ipam_pcount = []
         min_pcount = []
+        max_pcount = []
         while (True):
             line = fipam.readline()
             if (line == None) or (len(line) == 0):
@@ -254,12 +305,16 @@ def eval(inputs, ipam_filename):
             if ("min_pattern" in line):
                 pc = int(line.split(" ")[1])
                 min_pcount.append(pc)
+            if ("max_pattern" in line):
+                pc = int(line.split(" ")[1])
+                max_pcount.append(pc)
             if ("ipam_pattern" in line):
                 pc = int(line.split(" ")[1])
                 ipam_pcount.append(pc)
 
         ipam_w = 0
         min_w = 0
+        max_w = 0
         for e in input.entries:
             for si in range(len(input.sunit)):
                 for di in range(len(input.dunit)):
@@ -267,10 +322,17 @@ def eval(inputs, ipam_filename):
                         (e.dip == input.dunit[di][0])):
                         ipam_w = ipam_w + ipam_pcount[si] * ipam_pcount[di - len(input.sunit)]
                         min_w = min_w + min_pcount[si] * min_pcount[di - len(input.sunit)]
-        print input.name
-        print input.len_remark, 
-        print "min", min_w
-        print "ipam", ipam_w
+                        max_w = max_w + max_pcount[si] * max_pcount[di - len(input.sunit)]
+
+        print input.name, ",",
+        original = input.len_remark.split(" ")[1]
+        print original, ",",
+        bitseg = input.len_remark.split(" ") [2].replace("\n", "")
+        print bitseg, ",",
+        print min_w, ",",
+        print max_w, ",",
+        print ipam_w, ",",
+        input.show_sizes()
         print ""
                         
                 
@@ -294,6 +356,32 @@ if ("s" in mode):
         else:
             input.show_joint(fout)
     fout.close()
-elif ("c" in mode):
+elif ("e" in mode):
     ipam_filename = sys.argv[3]
     eval(inputs, ipam_filename)
+elif ("c" in mode):
+    def writelists(file, osl):
+        fout = open(file, "w")
+        x = max(map(lambda(l): len(l), osl))
+        for i in range(x):
+            for os in osl:
+                if (i < len(os)):
+                    fout.write("{1},{0},".format(str(i * 1.0 / len(os)),
+                                                str(os[i])))
+                else:
+                    fout.write(",,")
+            fout.write("\n")
+        fout.close()
+
+    osl =[]
+    odl = []
+    oal = []
+    for input in inputs:
+        os, od, oa = input.show_unit_size()
+        osl.append(os)
+        odl.append(od)
+        oal.append(oa)
+    writelists(input_filename + ".scount.csv", osl)
+    writelists(input_filename + ".dcount.csv", odl)
+    writelists(input_filename + ".acount.csv", oal)
+    pass

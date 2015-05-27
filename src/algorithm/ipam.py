@@ -368,6 +368,7 @@ def construct_pyramids(leveled_terms):
     ## each atomic term is a pyramid
     for level, terms in leveled_terms.items():
         for term in terms:
+#            print str(term)
             if (term.subs == None):
                 py = Pyramid.one_term_pyramid(term)
                 pyramids.add(py)
@@ -518,17 +519,20 @@ def wildcard(policies, patterns):
     max_rules = 0
     min_rules = 0
     for p in patterns:
-        cterm = 0
+        minterm = 0
+        maxterm = 0
         for level, terms in leveled_terms.items():
             for term in terms:
                 #print str(term)
                 if (p.contain(term.dims)):
                     if (p not in term.edges):
                         min_rules = min_rules + p.weight
-                        cterm = cterm + 1
+                        minterm = minterm + 1
                     if (term.subs == None):
                         max_rules = max_rules + p.weight
-        print "min_pattern", cterm
+                        maxterm = maxterm + 1
+        print "min_pattern", minterm
+        print "max_pattern", maxterm
 
     ## merge pyramids based on connection terms
 #    final_pyramid = None
