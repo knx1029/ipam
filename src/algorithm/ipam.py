@@ -3,7 +3,7 @@ import copy
 import heapq
 from ipam_ds import *
 
-
+## read in all inputs (may be multiple sets)
 def readin(input_filename, multi = False):
     fin = open(input_filename, "r")    
     if (multi):
@@ -24,12 +24,12 @@ def readin(input_filename, multi = False):
         fin.close()
         return input
 
-## read in the policy
+## read in a single set of input
 def readin_policies(fin):
     ## input uses 0 to stand for * to denote patterns
     def strd(d):
         if (d == 0): 
-            return '*'
+            return WC
         else:
             return str(d)
 
@@ -72,7 +72,7 @@ def readin_policies(fin):
     return policies, patterns
 
 ## this is the ipam for prefix-based solution
-def ipam(policy):
+def prefix(policy):
     def ones(x):
         y = 0
         while (x > 0):
@@ -564,33 +564,26 @@ def wildcard(policies, patterns):
     print "min_rules:", min_rules
     print "use_rules", use_rules
     print ""
-    
-input_filename = sys.argv[1]
-mode = sys.argv[2]
 
-if (mode == 's'):
-    input = readin(input_filename)
-    if (input != None):
-        policies, patterns = input
-        Pyramid.nbits = int(sys.argv[3])
 
-        option = "nanxi" # "ori"
-    #    option = "ori"
-        if option == "nanxi":
-            if (len(sys.argv) > 4):
-                Conn.cmp_bits = int(sys.argv[4])
-                
-            wildcard(policies, patterns)
-        elif option == "ori":
-            num_rules, nrules = ipam(policies)
-        #        print "heuristics:", num_rules, " =", nrules
-            print "heuristics:", sum(nrules)
-else:
-    inputs = readin(input_filename, True)
-    if (inputs != None):
-        for (policies, patterns, nbits) in inputs:
-            Pyramid.nbits = nbits                
-            wildcard(policies, patterns)
+def ipam(input_filename, mode, nbits = None):
+    if (mode == 's'):
+        input = readin(input_filename)
+        if (input != None):
+            policies, patterns = input
+            Pyramid.nbits = int(nbits)
+            option = "wildcard" #"prefix"
+            if option == "wildcard":
+                wildcard(policies, patterns)
+            elif option == "prefix":
+                num_rules, nrules = prefix(policies)
+                print "heuristics:", sum(nrules)
+    else:
+        inputs = readin(input_filename, True)
+        if (inputs != None):
+            for (policies, patterns, nbits) in inputs:
+                Pyramid.nbits = nbits                
+                wildcard(policies, patterns)
 
 
 
