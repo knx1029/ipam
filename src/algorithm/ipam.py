@@ -20,7 +20,7 @@ def readin(input_filename, compact, multi):
         fin.close()
         return inputs
     else:
-        input = readin_policies(fin)
+        input = readin_policies(fin, compact)
         fin.close()
         return input
 
@@ -579,18 +579,13 @@ def wildcard(policies, patterns):
 
 
 def shorten(input_filename):
-    inputs = readin(input_filename, False, True)
-    for (policies, patterns, nbits) in inputs:
+    inputs = readin(input_filename, False, False)
+#    for (policies, patterns, nbits) in inputs:
+    if True:
+        policies, patterns = inputs
         counts = policies.counts
         for key in sorted(counts.keys()):
             print key, counts[key]
-        continue
-        outputs = dict()
-        for key in counts.keys():
-            tokens = key.split(' ')
-            outputs[(int(tokens[0]), int(tokens[1]))] = counts[key]
-        for key in sorted(outputs.keys()):
-            print key[0], key[1], outputs[key]
 
 def ipam(input_filename, mode, nbits = None):
     if ("s" in mode):

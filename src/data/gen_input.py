@@ -87,9 +87,12 @@ class Input:
     def show_sizes(self):
         ips = self._get_ips()
         ip_counts = self._get_ip_counts(ips)
+        nips = sum(ip_counts.values())
+        if (0 in ip_counts):
+            nips = nips - ip_counts[0]
         nbits = self._get_nbits(ip_counts)
         _, _, acount = self.show_unit_size()
-        print len(ips), ",", nbits, ",", len(self.sunit), ",", len(self.dunit), ",", acount[0], ",", acount[-1],
+        print nips, ",", nbits, ",", len(self.sunit), ",", len(self.dunit), ",", acount[0], ",", acount[-1],
 
     def show_unit_size(self):
         def find_best(ip, units):

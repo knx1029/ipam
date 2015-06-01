@@ -1,8 +1,8 @@
 import sys
 import ipam
 
-option = "ipam"
-#option = "shorten"
+#option = "ipam"
+option = "shorten"
 
 if (option == "ipam"):
     input_filename = sys.argv[1]

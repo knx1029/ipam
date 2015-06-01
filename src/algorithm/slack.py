@@ -209,6 +209,7 @@ def best_slack(policies, debug = False):
                     slack_size[(di, dv)] = (sl + nc - req_slack, sz + nc)
                 else:
                     slack_size[(di, dv)] = (sl - req_slack, sz)
+
             ## add slack (by creating new hosts)
             if (gv not in slack_counts):
                 slack_counts[gv] = req_slack
@@ -236,6 +237,7 @@ def best_slack(policies, debug = False):
             if (di not in slack_dict):
                 slack_dict[di] = dict()
             slack_dict[di][dv] = (sl, sz)
+
 
     update_counts(slack_counts, match_up(slack_dict, 
                                          max_slack,
@@ -405,8 +407,8 @@ def main(input_filename, mode):
         input = ipam.readin(input_filename, 'c' in mode, False)
         policies, patterns = input
 #        slack_policies = slack(policies)  
-        slack_policies = min_slack(policies, False)
-#        slack_policies = best_slack(policies, False)
+#        slack_policies = min_slack(policies, False)
+        slack_policies = best_slack(policies, False)
         writeout_policies(slack_policies, patterns)
     elif ('m' in mode):
         inputs = ipam.readin(input_filename, 'c' in mode, True)
