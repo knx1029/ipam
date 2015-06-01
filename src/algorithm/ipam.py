@@ -4,7 +4,7 @@ import heapq
 from ipam_ds import *
 
 ## read in all inputs (may be multiple sets)
-def readin(input_filename, multi = False):
+def readin(input_filename, compact, multi):
     fin = open(input_filename, "r")    
     if (multi):
         inputs = []
@@ -13,7 +13,7 @@ def readin(input_filename, multi = False):
             if (line == None) or (len(line) == 0):
                 break
             nbits = int(line)
-            input = readin_policies(fin)
+            input = readin_policies(fin, compact)
             if (input == None):
                 return None
             inputs.append((input[0], input[1], nbits))
@@ -25,7 +25,7 @@ def readin(input_filename, multi = False):
         return input
 
 ## read in a single set of input
-def readin_policies(fin):
+def readin_policies(fin, compact):
     ## input uses 0 to stand for * to denote patterns
     def strd(d):
         if (d == 0): 
@@ -44,18 +44,30 @@ def readin_policies(fin):
     r = int(tokens[2])
 
     ## readin values of the elements in functions
-    values = []
-    for i in range(0, m):
-        line = fin.readline()
-        tokens = line.split(' ')
-        vs = map(int, tokens)
-        if (len(vs) != n):
-            return None
-        newline = ' '.join(str(v) for v in vs)
-        values.append(newline)
+    if (compact):
+        values = dict()
+        for i in range(0, m):
+            line = fin.readline()
+            tokens = line.split(' ')
+            vs = map(int, tokens)
+            if (len(vs) != n + 1):
+                return None
+            key = ' '.join(str(v) for v in vs[0:n])
+            values[key] = vs[n]
+    else:
+        values = []
+        for i in range(0, m):
+            line = fin.readline()
+            tokens = line.split(' ')
+            vs = map(int, tokens)
+            if (len(vs) != n):
+                return None
+            newline = ' '.join(str(v) for v in vs)
+            values.append(newline)
+
     if (len(values) != m):
         return None
-    policies = Policies(n, m, values)
+    policies = Policies(n, m, values, compact)
 
     ## readin the combinations of function values and their weights
     patterns = set()
@@ -87,7 +99,7 @@ def prefix(policy):
         l2 = int(v2.split(' ')[nth])
         return l1 == l2
 
-    counts = policy.count_values()
+    counts = policy.counts
     num_rules = 0
     for c in counts.values():
         num_rules = num_rules + ones(c)
@@ -126,7 +138,7 @@ def get_leveled_terms(policies, patterns):
 
     ## extract terms from the policy
     def get_terms(policy, patterns):
-        counts = policy.count_values()
+        counts = policy.counts
         terms = []
         for v, c in counts.items():
             dims = v.split(' ')
@@ -566,9 +578,23 @@ def wildcard(policies, patterns):
     print ""
 
 
+def shorten(input_filename):
+    inputs = readin(input_filename, False, True)
+    for (policies, patterns, nbits) in inputs:
+        counts = policies.counts
+        for key in sorted(counts.keys()):
+            print key, counts[key]
+        continue
+        outputs = dict()
+        for key in counts.keys():
+            tokens = key.split(' ')
+            outputs[(int(tokens[0]), int(tokens[1]))] = counts[key]
+        for key in sorted(outputs.keys()):
+            print key[0], key[1], outputs[key]
+
 def ipam(input_filename, mode, nbits = None):
-    if (mode == 's'):
-        input = readin(input_filename)
+    if ("s" in mode):
+        input = readin(input_filename, "c" in mode, False)
         if (input != None):
             policies, patterns = input
             Pyramid.nbits = int(nbits)
@@ -578,8 +604,8 @@ def ipam(input_filename, mode, nbits = None):
             elif option == "prefix":
                 num_rules, nrules = prefix(policies)
                 print "heuristics:", sum(nrules)
-    else:
-        inputs = readin(input_filename, True)
+    elif ("m" in mode):
+        inputs = readin(input_filename, "c" in mode, True)
         if (inputs != None):
             for (policies, patterns, nbits) in inputs:
                 Pyramid.nbits = nbits                

@@ -6,6 +6,25 @@ def ip_contain(ip1, ip2):
     return (ip1 == ip2)
 
 
+## return the join of ip1 and ip2
+def ip_join(ip1, ip2):
+    if (ip1 > ip2):
+        return ip_join(ip2, ip1)
+    if (ip_contain(ip1, ip2)):
+        return ip2
+    else:
+        return None
+       
+## return the number of hosts in this ip subnet
+def ip_count(ip):
+    nbits = 32
+    for i in range(1, nbits + 1):
+        if (((1 << i) - 1) > ip):
+            return (1 << (nbits - i + 1))
+    return 1
+    
+ 
+
 class Entry:
 
     @classmethod

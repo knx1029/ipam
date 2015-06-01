@@ -2,6 +2,8 @@ import sys
 import math
 from utils import *
 
+
+
 class Input:
     threshold = (1<<32) - 1
 
@@ -16,31 +18,76 @@ class Input:
         self.entries = entries
         self.len_remark = len_str
 
-    def _get_ips(self):
-        def expand(p):
-            if (p >= Input.threshold):
-                return {p}
-            else:
-                s1 = expand((p << 1) + 1)
-                s2 = expand((p << 1) + 2)
-                s1.update(s2)
-                return s1
 
-        ips = set()
+    def _get_ip_counts(self, ips):
+        ip_counts = {ip : ip_count(ip) for ip in ips}
+        sorted_ip = sorted(ips, reverse = True)
+        for ip1 in sorted_ip:
+            for ip2 in sorted_ip:
+                if (ip1 == ip2):
+                    continue
+                if (ip_contain(ip2, ip1)):
+                    ip_counts[ip2] = ip_counts[ip2] - ip_counts[ip1]
+                          
+        return ip_counts
+
+    def _get_nbits(self, ip_counts):
+        nips = sum(ip_counts.values())
+        if (0 in ip_counts):
+            nips = nips - ip_counts[0]
+        nbits = int(math.ceil(math.log(nips)/math.log(2.0) - 1e-9))
+        return nbits
+
+
+    def __get_ips(self):
+
+        def expand(ip_set, ip):
+            if (ip >= ((1 << 32) - 1)):
+                ip_set.add(ip)
+                return
+            expand(ip_set, ip * 2 + 1)
+            expand(ip_set, ip * 2 + 2)
+
+
+        ip_set = set()
         for unit in self.sunit:
-            for p in unit:
-                if (p > 0):
-                    ips.update(expand(p))
+            for ip in unit:
+                if (ip > 0):
+                    expand(ip_set, ip)
         for unit in self.dunit:
-            for p in unit:
-                if (p > 0):
-                    ips.update(expand(p))
+            for ip in unit:
+                if (ip > 0):
+                    expand(ip_set, ip)
+        return ip_set
 
-        return ips
+    def _get_ips(self):            
+        ## starts here
+        ip_set = set()
+        for unit in self.sunit:
+            ip_set.update(set(unit))
+        for unit in self.dunit:
+            ip_set.update(set(unit))
+    
+        while (True):
+            updated = False
+            new_set = set()
+            for ip1 in ip_set:
+                for ip2 in ip_set:
+                    ip3 = ip_join(ip1, ip2)
+                    if (ip3 != None) and (ip3 not in ip_set):
+                        new_set.add(ip3)
+                        updated = True
+            if (updated):
+                ip_set.update(new_set)
+            else:
+                break
+
+        return ip_set
 
     def show_sizes(self):
         ips = self._get_ips()
-        nbits = int(math.ceil(math.log(len(ips))/math.log(2.0) - 1e-9))
+        ip_counts = self._get_ip_counts(ips)
+        nbits = self._get_nbits(ip_counts)
         _, _, acount = self.show_unit_size()
         print len(ips), ",", nbits, ",", len(self.sunit), ",", len(self.dunit), ",", acount[0], ",", acount[-1],
 
@@ -107,22 +154,38 @@ class Input:
         ips = self._get_ips()
         if len(ips) == 0:
             return
-        print len(ips)
-        nbits = int(math.ceil(math.log(len(ips))/math.log(2.0) - 1e-9))
+        ip_counts = self._get_ip_counts(ips)
+        nbits = self._get_nbits(ip_counts)
+        print sum(ip_counts.values()) - ip_counts[0]
+
         line = str(nbits) + "\n"
         fout.write(line)
-        line = "{0} {1} {2}\n".format(str(len(ips)), 
-                                    2,
-                                    str(len(self.sunit) + len(self.dunit)))
-        fout.write(line)
 
+        ## create group size
+        group_size = dict()
         for ip in ips:
+            if (ip == 0):
+                continue
             best_i = find_best(ip, self.sunit)
             best_j = find_best(ip, self.dunit)
-            line = "{0} {1}\n".format(str(best_i + 1),
-                                      str(best_j + 1))
-            fout.write(line)
+            key = "{0} {1}".format(str(best_i + 1), str(best_j + 1))
+            if (key not in group_size):
+                group_size[key] = ip_counts[ip]
+            else:
+                group_size[key] = group_size[key] + ip_counts[ip]
 
+
+        ndims = len(self.sunit) + len(self.dunit)
+        line = "{0} {1} {2}\n".format(str(len(group_size)),
+                                      2,
+                                      str(ndims))
+        fout.write(line)
+
+        for key in sorted(group_size.keys()):
+            line = "{0} {1}\n".format(key,
+                                      str(group_size[key]))
+            fout.write(line)
+ 
         for i in range(len(self.sunit)):
             w = count_weight(self.sunit[i][0], True)
             line = "{0} 0 {1}\n".format(str(i + 1), str(w))
@@ -156,19 +219,20 @@ class Input:
         ips = self._get_ips()
         if (len(ips) == 0):
             return
-        print len(ips)
-        nbits = int(math.ceil(math.log(len(ips))/math.log(2.0) - 1e-9))
+        ip_counts = self._get_ip_counts(ips)
+        nbits = self._get_nbits(ip_counts)
+        print sum(ip_counts.values()) - ip_counts[0]
+
         line = str(nbits) + "\n"
         fout.write(line)
 
         ls = len(self.sunit)
         ndims = len(self.sunit) + len(self.dunit)
-        line = "{0} {1} {2}\n".format(str(len(ips)),
-                                      str(ndims),
-                                      str(ndims))
-        fout.write(line)
+        group_size = dict()
         values = [0] * ndims
         for ip in ips:
+            if (ip == 0):
+                continue
             iset = find_all(ip, self.sunit)
             jset = find_all(ip, self.sunit)
             for i in range(ndims):
@@ -177,9 +241,22 @@ class Input:
                     values[i] = 2
                 else:
                     values[i] = 1
-            line = " ".join(str(v) for v in values)
-            fout.write(line + "\n")
+            key = " ".join(str(v) for v in values)
+            if (key not in group_size):
+                group_size[key] = ip_counts[ip]
+            else:
+                group_size[key] = group_size[key] + ip_counts[ip]
 
+        line = "{0} {1} {2}\n".format(str(len(group_size)),
+                                      str(ndims),
+                                      str(ndims))
+        fout.write(line)
+
+        for key in sorted(group_size.keys()):
+            line = "{0} {1}\n".format(key, str(group_size[key]))
+            fout.write(line)
+
+        ## pattern
         for i in range(len(self.sunit)):
             w = count_weight(self.sunit[i][0], True)
             for j in range(ndims):
@@ -231,6 +308,12 @@ def gen_inputs(acl_str, snum_str, sunit_str, dnum_str, dunit_str, len_str, rules
 
 
 def readin(filename):
+    ## to filter small acl in purdue's configuration
+    def not_long(len_str):
+        tokens = len_str.split(' ')
+        return (int(tokens[1]) < 100)
+
+    ## starts here
     fin = open(filename, "r")
     fin.readline()
 
@@ -258,7 +341,8 @@ def readin(filename):
                                    dunit_str,
                                    len_str,
                                    rules)
-                inputs.append(input)
+                if (not not_long(input.len_remark)):
+                    inputs.append(input)
                 acl_str = None
                 snum_str = None
                 sunit_str = None
@@ -283,13 +367,18 @@ def readin(filename):
                            dunit_str,
                            len_str,
                            rules)
-        inputs.append(input)
+        if (not not_long(input.len_remark)):
+            inputs.append(input)
     fin.close()
     return inputs
 
 
 def eval(inputs, ipam_filename):
-    print "name, original_rules, bitsegmentation, opt, prefix, wildcard, ips, bits, sunit, dunit, min_group_size, max_group_size"
+    equal = True
+    if (equal):
+        print "name, original_rules, bitsegmentation, opt_eq, prefix_eq, wildcard_eq, ips, bits, sunit, dunit, min_group_size, max_group_size"
+    else:
+        print "name, original_rules, bitsegmentation, opt, prefix, wildcard, ips, bits, sunit, dunit, min_group_size, max_group_size"
 
     fipam = open(ipam_filename, "r")
     for input in inputs:
@@ -329,9 +418,14 @@ def eval(inputs, ipam_filename):
         print original, ",",
         bitseg = input.len_remark.split(" ") [2].replace("\n", "")
         print bitseg, ",",
-        print min_w, ",",
-        print max_w, ",",
-        print ipam_w, ",",
+        if (equal):
+            print sum(min_pcount), ",",
+            print sum(max_pcount), ",",
+            print sum(ipam_pcount),",",
+        else:
+            print min_w, ",",
+            print max_w, ",",
+            print ipam_w, ",",
         input.show_sizes()
         print ""
                         
@@ -343,15 +437,17 @@ def eval(inputs, ipam_filename):
 input_filename = sys.argv[1]
 mode = sys.argv[2]
 inputs = readin(input_filename)
-
+## s is to produce input for ipam
+## c is to count unit size
+## e is to merge outputs of ipam
 if ("s" in mode):
-    if (mode == "d"):
-        output_filename = input_filename + ".dpu"
+    if ("d" in mode):
+        output_filename = input_filename + ".ddpu"
     else:
-        output_filename = input_filename + ".jpu"
+        output_filename = input_filename + ".jjpu"
     fout = open(output_filename, "w")
     for input in inputs:
-        if (mode == "d"):
+        if ("d" in mode):
             input.show_disjoint(fout)
         else:
             input.show_joint(fout)

@@ -33,10 +33,26 @@ class Pattern:
 class Policies:
 
     ## n is #dimension. m is the #hosts
-    def __init__(self, n, m, values):
+    def __init__(self, n, m, values, compact):
+
+        def compress(vs):
+            counts = dict()
+            for v in vs:
+                if (v in counts):
+                    counts[v] = counts[v] + 1
+                else:
+                    counts[v] = 1
+            return counts
+
+
+        ## starts here
         self.n = n
         self.m = m
-        self.values = values
+        ## counts store #hosts in each distinct combination of values in dims
+        if (not compact):
+            self.counts = compress(values)
+        else:
+            self.counts = values
 
     ## get a policy with one dimension (=nth in self)
     def project(self, nth):
@@ -44,31 +60,23 @@ class Policies:
             tokens = line.split(' ')
             return tokens[nth]
 
+        ## starts here
         if (nth >= self.n) or (nth < 0):
             return None
         if (self.n == 1):
             return self
 
-        nth_values = map(f, self.values)
-        return Policies(1, self.m, nth_values)
-
-    ## get the values of host x
-    def get_value(self, x):
-        if (x >= self.n) or (x < 0):
-            return None
-        return self.values[x]
-
-
-    ## get the #hosts in each distinct combination of values in dims
-    def count_values(self):
-        counts = dict()
-        for v in self.values:
-            if (v in counts):
-                counts[v] = counts[v] + 1
+        nth_counts = dict()
+        for (key, value) in self.counts.items():
+            nth_key = f(key)
+            if (nth_key not in nth_counts):
+                nth_counts[nth_key] = value
             else:
-                counts[v] = 1
-        return counts
+                nth_counts[nth_key] = nth_counts[nth_key] + value
+        return Policies(1, self.m, nth_counts, True)
 
+    def count_values(self):
+        return self.values
 
 class Term:
     id = 1
