@@ -374,7 +374,7 @@ def readin(filename):
 
 
 def eval(inputs, ipam_filename):
-    equal = True
+    equal = False
     if (equal):
         print "name, original_rules, bitsegmentation, opt_eq, prefix_eq, wildcard_eq, ips, bits, sunit, dunit, min_group_size, max_group_size"
     else:

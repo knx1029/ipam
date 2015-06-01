@@ -50,7 +50,7 @@ def nochange(x, z):
 ## if all attributes have zero slack, then use the 
 ## fake attribute
 def match_up(slack_dict, max_slack, fake_v, n, debug = False):
-    slack_values = []
+    slack_counts = dict()
     dims = [fake_v] * n
     while (True):
         deduct_slack = max_slack + 1
@@ -65,14 +65,27 @@ def match_up(slack_dict, max_slack, fake_v, n, debug = False):
         gv = " ".join(dims)
         if debug:
             print gv, ":", deduct_slack
-        slack_values.extend([gv] * deduct_slack)
+        if (gv not in slack_counts):
+            slack_counts[gv] = deduct_slack
+        else:
+            slack_counts[gv] = slack_counts[gv] + deduct_slack
+
         for i, ith_slack in slack_dict.items():
             if (dims[i] != fake_v):
                 (sl, sz) = ith_slack[dims[i]]
                 ith_slack[dims[i]] = (sl - deduct_slack, sz)
                 dims[i] = fake_v
 
-    return slack_values
+    return slack_counts
+
+
+## add values of counts2 to counts1
+def update_counts(counts1, counts2):
+    for key, value in counts2.items():
+        if (key not in counts1):
+            counts1[key] = value
+        else:
+            counts1[key] = counts1[key] + value
 
 
 ## use 1 extra bit to reduce opt_slack
@@ -85,7 +98,7 @@ def min_slack(policies, debug = False):
     max_v = 0
     for i in range(policies.n):
         ith_policy = policies.project(i)
-        ith_counts = ith_policy.count_values()
+        ith_counts = ith_policy.counts
         ith_slack = dict()
         for v, c in ith_counts.items():
             y = power_of_two(c)
@@ -105,16 +118,17 @@ def min_slack(policies, debug = False):
     max_slack = (1 << (nbit + 1)) - policies.m + 1
 
     ## main work
-    slack_values = match_up(slack_size,
+    slack_counts = match_up(slack_size,
                             max_slack,
                             fake_v,
                             policies.n,
                             debug)
 
-    slack_values.extend(policies.values)
+    update_counts(slack_counts, policies.counts)
     slack_policies = Policies(policies.n,
-                              len(slack_values),
-                              slack_values)
+                              len(slack_counts),
+                              slack_counts,
+                              True)
 
     return slack_policies
 
@@ -138,7 +152,7 @@ def best_slack(policies, debug = False):
 
     for i in range(policies.n):
         ith_policy = policies.project(i)
-        ith_counts = ith_policy.count_values()
+        ith_counts = ith_policy.counts
         left_slack[i] = max_slack
         for v, c in ith_counts.items():
             y = power_of_two(c)
@@ -152,7 +166,7 @@ def best_slack(policies, debug = False):
 
     ## calculate the slack needed by each group
     ## a group is associated with n attributes
-    counts = policies.count_values()
+    counts = policies.counts
     groups = []
     slack_groups = []
     for v, c in counts.items():
@@ -169,7 +183,7 @@ def best_slack(policies, debug = False):
                        for (i, l) in left_slack.items())
 
     ## distribute slack to individual groups
-    slack_values = []
+    slack_counts = dict()
     scount = 0
     while (len(groups) > 0):
         req_slack, gv, c = heapq.heappop(groups)
@@ -196,7 +210,11 @@ def best_slack(policies, debug = False):
                 else:
                     slack_size[(di, dv)] = (sl - req_slack, sz)
             ## add slack (by creating new hosts)
-            slack_values.extend([gv] * req_slack)
+            if (gv not in slack_counts):
+                slack_counts[gv] = req_slack
+            else:
+                slack_counts[gv] = slack_counts[gv] + req_slack
+                
             new_c = c + req_slack
             new_req_slack = incr(new_c)
             ## count the success
@@ -219,11 +237,11 @@ def best_slack(policies, debug = False):
                 slack_dict[di] = dict()
             slack_dict[di][dv] = (sl, sz)
 
-    slack_values.extend(match_up(slack_dict, 
-                                 max_slack,
-                                 fake_v,
-                                 policies.n,
-                                 debug))
+    update_counts(slack_counts, match_up(slack_dict, 
+                                         max_slack,
+                                         fake_v,
+                                         policies.n,
+                                         debug))
 
 
     if (debug):
@@ -231,10 +249,11 @@ def best_slack(policies, debug = False):
         print "\n".join("{0} {1}".format(x[0], str(x[1]))
                         for x in slack_groups)
 
-    slack_values.extend(policies.values)
+    update_counts(slack_counts, policies.counts)
     slack_policies = Policies(policies.n,
-                              len(slack_values),
-                              slack_values)
+                              len(slack_counts),
+                              slack_counts,
+                              True)
 
     return slack_policies
 
@@ -256,7 +275,7 @@ def slack(policies, debug = False):
     max_v = 0
     for i in range(policies.n):
         ith_policy = policies.project(i)
-        ith_counts = ith_policy.count_values()
+        ith_counts = ith_policy.counts
         for v, c in ith_counts.items():
             y = power_of_two(c)
             sz = (1 << y)
@@ -275,7 +294,7 @@ def slack(policies, debug = False):
 
     ## calculate the slack needed by each group
     ## a group is associated with n attributes
-    counts = policies.count_values()
+    counts = policies.counts
     groups = []
     slack_groups = []
     for v, c in counts.items():
@@ -290,7 +309,7 @@ def slack(policies, debug = False):
         print "left_slack", left_slack
 
     ## distribute slack to individual groups
-    slack_values = []
+    slack_counts = dict()
     scount = 0
     while (len(groups) > 0):
         req_slack, gv, c = heapq.heappop(groups)
@@ -323,7 +342,10 @@ def slack(policies, debug = False):
                 sl, sz = slack_size[(di, dv)]
                 slack_size[(di, dv)] = (sl - req_slack, sz)
             ## add slack (by creating new hosts)
-            slack_values.extend([gv] * req_slack)
+            if (gv not in slack_counts):
+                slack_counts[gv] = req_slack
+            else:
+                slack_counts[gv] = slack_counts[gv] + req_slack
             new_c = c + req_slack
             new_req_slack = incr(new_c)
             scount = scount + 1
@@ -342,7 +364,10 @@ def slack(policies, debug = False):
         if (sl > 0):
             dims[di] = dv
             gv = " ".join(dims)
-            slack_values.extend([gv] * sl)
+            if (gv not in slack_counts):
+                slack_counts[gv] = sl
+            else:
+                slack_counts[gv] = slack_counts[gv] + sl
             dims[di] = fake_v
             slack_groups.append((gv, sl))
 
@@ -351,11 +376,12 @@ def slack(policies, debug = False):
 #        print "\n".join("{0} {1}".format(x[0], str(x[1]))
 #                        for x in slack_groups)
 
-    slack_values.extend(policies.values)
+    update_counts(slack_counts, policies.counts)
 
     slack_policies = Policies(policies.n,
-                              len(slack_values),
-                              slack_values)
+                              len(slack_counts),
+                              slack_counts,
+                              True)
 
     return slack_policies
 
@@ -366,23 +392,24 @@ def writeout_policies(policies, patterns):
         return s
 
     print policies.m, policies.n, len(patterns)
-    for i in range(policies.m):
-        print policies.values[i]
+    for key in sorted(policies.counts.keys()):
+        print key, policies.counts[key]
+#    return
     for p in patterns:
         l = map(rev_strd, p.dims)
         print " ".join(l), p.weight
 
 
 def main(input_filename, mode):
-    if (mode == 's'):
-        input = ipam.readin(input_filename, False)
+    if ('s' in mode):
+        input = ipam.readin(input_filename, 'c' in mode, False)
         policies, patterns = input
 #        slack_policies = slack(policies)  
         slack_policies = min_slack(policies, False)
 #        slack_policies = best_slack(policies, False)
         writeout_policies(slack_policies, patterns)
-    else:
-        inputs = ipam.readin(input_filename, True)
+    elif ('m' in mode):
+        inputs = ipam.readin(input_filename, 'c' in mode, True)
         for policies, patterns, nbits in inputs:
 #        if (True):
 #            policies, patterns, nbitx = inputs[6]
