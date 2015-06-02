@@ -47,11 +47,14 @@ class Policies:
 
         ## starts here
         self.n = n
-        self.m = m
         ## counts store #hosts in each distinct combination of values in dims
-        if (not compact):
+        if (not compact): 
+            self.m = m
             self.counts = compress(values)
         else:
+            self.m = sum(values.values())
+            if (0 in values):
+                self.m = self.m - values[0]
             self.counts = values
 
     ## get a policy with one dimension (=nth in self)

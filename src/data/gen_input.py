@@ -91,10 +91,10 @@ class Input:
         if (0 in ip_counts):
             nips = nips - ip_counts[0]
         nbits = self._get_nbits(ip_counts)
-        _, _, acount = self.show_unit_size()
+        _, _, acount = self._get_unit_size(ips, ip_counts)
         print nips, ",", nbits, ",", len(self.sunit), ",", len(self.dunit), ",", acount[0], ",", acount[-1],
 
-    def show_unit_size(self):
+    def _get_unit_size(self, ips, ip_counts):
         def find_best(ip, units):
             best_i, best_pi = -1, None
             for i in range(len(units)):
@@ -106,25 +106,22 @@ class Input:
                         best_pi = p
             return best_i
 
-        def add_one(d, k):
+        def add_v(d, k, v):
             if (k in d):
-                d[k] = d[k] + 1
+                d[k] = d[k] + v
             else:
-                d[k] = 1
+                d[k] = v
 
         ## starts here
-        ips = self._get_ips()
-        if len(ips) == 0:
-            return
         scount = dict()
         dcount = dict()
         acount = dict()
         for ip in ips:
             best_i = find_best(ip, self.sunit)
             best_j = find_best(ip, self.dunit)
-            add_one(scount, best_i)
-            add_one(dcount, best_j)
-            add_one(acount, (best_i, best_j))
+            add_v(scount, best_i, ip_counts[ip])
+            add_v(dcount, best_j, ip_counts[ip])
+            add_v(acount, (best_i, best_j), ip_counts[ip])
 
         outputs = sorted(scount.values())
         outputd = sorted(dcount.values())
