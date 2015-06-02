@@ -337,8 +337,9 @@ def opt_slack(policies, debug = False):
                         
             if (not success):
                 continue
-            if (debug):
-                print "add", req_slack, "to", gv
+#            if (debug):
+#                print "add", req_slack, "to", gv
+
             ## deduct slack
             for di, dv in enumerate(dims):
                 sl, sz = slack_size[(di, dv)]
@@ -375,7 +376,6 @@ def opt_slack(policies, debug = False):
 
         for (gv, c) in matched_counts.items():
             dims = gv.split(' ')
-#            print gv, ":", c
             for di, dv in enumerate(dims):
                 if (dv != fake_v):
                     sl, sz = slack_size[(di, dv)]
@@ -386,19 +386,29 @@ def opt_slack(policies, debug = False):
                         continue
                     best_di, best_dv, best_sl, best_sz = -1, -1, -1, -1
                     for (ddi, ddv), (ssl, ssz) in slack_size.items():
-                        if ((ddi == di) and (ssl >= c)):
+#                        if ((ddi == di) and (ssl >= c)):
+                        if ((ddi == di) and (ssz == c)):
                             best_di, best_dv, best_sl, best_sz = ddi, ddv, ssl, ssz
+                            nc = nochange(ssz, c - ssl)
+                            best_sl = best_sl + nc
+                            best_sz = best_sz + nc
                             break
                     if (best_di < 0):
                         print "wrong"
+#                    print best_di, best_dv, best_sl, best_sz, c
                     slack_size[(best_di, best_dv)] = (best_sl - c, best_sz)
         update_counts(slack_counts, matched_counts)
         ## ----- end of the for loop ----- #
 
     if (debug):
         print "final"
-        print "\n".join("{0} {1}".format(gv, str(c))
-                        for (gv, c) in slack_groups.items())
+        for ((di, dv), (sl, sz)) in slack_size.items():
+            if (sl != 0):
+                print di, dv, sl, sz, "!!!!!!"
+#        print "\n".join("{0}: {1}".format(str(d), str(s))
+#                        for (d, s) in slack_size.items())
+#        print "\n".join("{0} {1}".format(gv, str(c))
+#                        for (gv, c) in slack_groups.items())
 
     update_counts(slack_counts, policies.counts)
     slack_policies = Policies(policies.n,
