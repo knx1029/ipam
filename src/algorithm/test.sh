@@ -1,25 +1,85 @@
 if [ "$1" == "gatech" ]; then
+    input=../data/gdata/gatech.m_summary
     if [ "$2" == "slack" ]; then
-	o=jpu
-	echo "add slack"
-	python slack.py ../data/gdata/gatech.m_summary.${o} m > slack_gatech.m_summary.${o}
-	echo "run ipam"
-	python main.py slack_gatech.m_summary.${o} m > slack_gatech_${o}_all.ipam
-	echo "gen csv"
-	python ../data/gen_input.py ../data/gdata/gatech.m_summary e slack_gatech_${o}_all.ipam > slack_gatech_${o}.ipam_perf.csv
-    else    
-	echo "empty"
-#    echo python ipam.py ../data/gdata/gatech.m_summary.dpu m > ../data/gdata/gatech_dpu_all.ipam
-#    python ipam.py ../data/gdata/gatech.m_summary.dpu m > ../data/gdata/gatech_dpu_all.ipam
-#    echo python ipam.py ../data/gdata/gatech.m_summary.jpu m > ../data/gdata/gatech_jpu_all.ipam
-#    python ipam.py ../data/gdata/gatech.m_summary.jpu m > ../data/gdata/gatech_jpu_all.ipam
+	for o in sd sdw sj sjw ; do
+	    echo "option=${o}"
+	    ipam_input=${input}.${o}
+	    for mode in mci mca mce ; do
+		echo "mode=${mode}"
+		slack_input=${mode}_slack_gatech.${o}
+		ipam_output=${mode}_slack_gatech.${o}.ipam
+		ipam_summary=${mode}_slack_gatech.${o}.perf.csv
+		echo "add slack"
+		python slack.py ${ipam_input} ${mode} > ${slack_input}
+		echo "run ipam"
+		python main.py ${slack_input} mc > ${ipam_output}
+		echo "gen csv"
+		if [[ "$o" == "sdw"  ||  "$o" == "sjw" ]]; then
+		    python ../data/gen_input.py ${input} ew ${ipam_output} > ${ipam_summary}
+		else
+		    python ../data/gen_input.py ${input} e ${ipam_output} > ${ipam_summary}
+		fi
+	    done
+	done
+    fi
+    if [ "$2" == "regular" ]; then
+	echo "ipam"
+	for o in sd sdw sj sjw ; do
+	    echo "option=${o}"
+	    ipam_input=${input}.${o}
+	    ipam_output=gatech.${o}.ipam
+	    ipam_summary=gatech.${o}.perf.csv
+	    echo "run ipam"
+	    python main.py ${ipam_input} mc > ${ipam_output}
+	    echo "gen csv"
+	    if [[ "$o" == "sdw"  ||  "$o" == "sjw" ]]; then
+		python ../data/gen_input.py ${input} ew ${ipam_output} > ${ipam_summary}
+	    else
+		python ../data/gen_input.py ${input} e ${ipam_output} > ${ipam_summary}
+	    fi
+	done
      fi
-
 fi
 
 if [ "$1" == "purdue" ]; then
-    echo python ipam.py ../data/pdata/purdue.m_summary.dpu m > ../data/pdata/purdue_dpu_all.ipam
-    python ipam.py ../data/pdata/purdue.m_summary.dpu m > ../data/pdata/purdue_dpu_all.ipam
-    echo python ipam.py ../data/pdata/purdue.m_summary.jpu m > ../data/pdata/purdue_jpu_all.ipam
-    python ipam.py ../data/pdata/purdue.m_summary.jpu m > ../data/pdata/purdue_jpu_all.ipam
+    input=../data/pdata/purdue.m_summary
+    if [ "$2" == "slack" ]; then
+	for o in sd sdw sj sjw ; do
+	    echo "option=${o}"
+	    ipam_input=${input}.${o}
+	    for mode in mci mca mce ; do
+		echo "mode=${mode}"
+		slack_input=${mode}_slack_purdue.${o}
+		ipam_output=${mode}_slack_purdue.${o}.ipam
+		ipam_summary=${mode}_slack_purdue.${o}.perf.csv
+		echo "add slack"
+		python slack.py ${ipam_input} ${mode} > ${slack_input}
+		echo "run ipam"
+		python main.py ${slack_input} mc > ${ipam_output}
+		echo "gen csv"
+		if [[ "$o" == "sdw"  ||  "$o" == "sjw" ]]; then
+		    python ../data/gen_input.py ${input} ew ${ipam_output} > ${ipam_summary}
+		else
+		    python ../data/gen_input.py ${input} e ${ipam_output} > ${ipam_summary}
+		fi
+	    done
+	done
+    fi
+    if [ "$2" == "regular" ]; then
+	echo "ipam"
+	for o in sd sdw sj sjw ; do
+	    echo "option=${o}"
+	    ipam_input=${input}.${o}
+	    ipam_output=purdue.${o}.ipam
+	    ipam_summary=purdue.${o}.perf.csv
+	    echo "run ipam"
+	    python main.py ${ipam_input} mc > ${ipam_output}
+	    echo "gen csv"
+	    if [[ "$o" == "sdw"  ||  "$o" == "sjw" ]]; then
+		python ../data/gen_input.py ${input} ew ${ipam_output} > ${ipam_summary}
+	    else
+		python ../data/gen_input.py ${input} e ${ipam_output} > ${ipam_summary}
+	    fi
+	done
+     fi
 fi

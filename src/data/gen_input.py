@@ -117,6 +117,8 @@ class Input:
         dcount = dict()
         acount = dict()
         for ip in ips:
+            if (ip == 0):
+                continue
             best_i = find_best(ip, self.sunit)
             best_j = find_best(ip, self.dunit)
             add_v(scount, best_i, ip_counts[ip])
@@ -130,7 +132,7 @@ class Input:
 
 
     ## show the disjoint input
-    def show_disjoint(self, fout):
+    def show_disjoint(self, fout, weighted = False):
         def find_best(ip, units):
             best_i, best_pi = -1, None
             for i in range(len(units)):
@@ -156,7 +158,6 @@ class Input:
             return
         ip_counts = self._get_ip_counts(ips)
         nbits = self._get_nbits(ip_counts)
-        print sum(ip_counts.values()) - ip_counts[0]
 
         line = str(nbits) + "\n"
         fout.write(line)
@@ -187,17 +188,21 @@ class Input:
             fout.write(line)
  
         for i in range(len(self.sunit)):
-            w = count_weight(self.sunit[i][0], True)
+            w = 1
+            if (weighted):
+                w = count_weight(self.sunit[i][0], True)
             line = "{0} 0 {1}\n".format(str(i + 1), str(w))
             fout.write(line)
         for i in range(len(self.dunit)):
-            w = count_weight(self.dunit[i][0], False)
+            w = 1
+            if (weighted):
+                w = count_weight(self.dunit[i][0], False)
             line = "0 {0} {1}\n".format(str(i + 1), str(w))
             fout.write(line)
 
 
     ## show the joint input
-    def show_joint(self, fout):
+    def show_joint(self, fout, weighted = False):
         def find_all(ip, units):
             iset = set()
             for i in range(len(units)):
@@ -221,7 +226,7 @@ class Input:
             return
         ip_counts = self._get_ip_counts(ips)
         nbits = self._get_nbits(ip_counts)
-        print sum(ip_counts.values()) - ip_counts[0]
+#        print sum(ip_counts.values()) - ip_counts[0]
 
         line = str(nbits) + "\n"
         fout.write(line)
@@ -258,7 +263,9 @@ class Input:
 
         ## pattern
         for i in range(len(self.sunit)):
-            w = count_weight(self.sunit[i][0], True)
+            w = 1
+            if (weighted):
+                w = count_weight(self.sunit[i][0], True)
             for j in range(ndims):
                 if (j == i):
                     values[j] = 2
@@ -269,7 +276,9 @@ class Input:
             fout.write(line)
 
         for i in range(len(self.dunit)):
-            w = count_weight(self.dunit[i][0], False)
+            w = 1
+            if (weighted):
+                w = count_weight(self.dunit[i][0], False)
             for j in range(ndims):
                 if (j == i + ls):
                     values[j] = 2
@@ -373,12 +382,11 @@ def readin(filename):
     return inputs
 
 
-def eval(inputs, ipam_filename):
-    equal = False
-    if (equal):
-        print "name, original_rules, bitsegmentation, opt_eq, prefix_eq, wildcard_eq, ips, bits, sunit, dunit, min_group_size, max_group_size"
-    else:
+def eval(inputs, ipam_filename, weighted = False):
+    if (weighted):
         print "name, original_rules, bitsegmentation, opt, prefix, wildcard, ips, bits, sunit, dunit, min_group_size, max_group_size"
+    else:
+        print "name, original_rules, bitsegmentation, opt_eq, prefix_eq, wildcard_eq, ips, bits, sunit, dunit, min_group_size, max_group_size"
 
     fipam = open(ipam_filename, "r")
     for input in inputs:
@@ -414,18 +422,32 @@ def eval(inputs, ipam_filename):
                         max_w = max_w + max_pcount[si] * max_pcount[di - len(input.sunit)]
 
         print input.name, ",",
-        original = input.len_remark.split(" ")[1]
-        print original, ",",
-        bitseg = input.len_remark.split(" ") [2].replace("\n", "")
-        print bitseg, ",",
-        if (equal):
-            print sum(min_pcount), ",",
-            print sum(max_pcount), ",",
-            print sum(ipam_pcount),",",
-        else:
+        if (weighted):
+            original = input.len_remark.split(" ")[1]
+            print original, ",",
+            bitseg = input.len_remark.split(" ") [2].replace("\n", "")
+            print bitseg, ",",
             print min_w, ",",
             print max_w, ",",
             print ipam_w, ",",
+        else:
+            original = 0
+            for unit in input.sunit:
+                if (0 in unit):
+                    original = original + len(unit) - 1
+                else:
+                    original = original + len(unit)
+            for unit in input.dunit:
+                if (0 in unit):
+                    original = original + len(unit) - 1
+                else:
+                    original = original + len(unit)
+#            original = sum(map(len, input.sunit)) + sum(map(len, input.dunit))
+            print original, ",",
+            print len(min_pcount), ",",
+            print sum(min_pcount), ",",
+            print sum(max_pcount), ",",
+            print sum(ipam_pcount),",",
         input.show_sizes()
         print ""
                         
@@ -437,24 +459,21 @@ def eval(inputs, ipam_filename):
 input_filename = sys.argv[1]
 mode = sys.argv[2]
 inputs = readin(input_filename)
-## s is to produce input for ipam
+## s is to produce input for ipam: {d,j} + {w}
 ## c is to count unit size
 ## e is to merge outputs of ipam
 if ("s" in mode):
-    if ("d" in mode):
-        output_filename = input_filename + ".ddpu"
-    else:
-        output_filename = input_filename + ".jjpu"
+    output_filename = input_filename + "." + mode
     fout = open(output_filename, "w")
     for input in inputs:
         if ("d" in mode):
-            input.show_disjoint(fout)
+            input.show_disjoint(fout, 'w' in mode)
         else:
-            input.show_joint(fout)
+            input.show_joint(fout, 'w' in mode)
     fout.close()
 elif ("e" in mode):
     ipam_filename = sys.argv[3]
-    eval(inputs, ipam_filename)
+    eval(inputs, ipam_filename, 'w' in mode)
 elif ("c" in mode):
     def writelists(file, osl):
         fout = open(file, "w")
