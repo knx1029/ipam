@@ -3,7 +3,7 @@ import operator
 import copy
 from utils import *
 
-def readin(input):
+def readin_gatech_s(input):
     fin = open(input, "r")
     fin.readline()
     entries = []
@@ -19,6 +19,38 @@ def readin(input):
             entries.append(entry)
     fin.close()
     return entries
+
+def readin_gatech_m(input):
+    fin = open(input, "r")
+    entries = None
+    entries_list = []
+    while (True):
+        line = fin.readline()
+        if (line == None) or (len(line) == 0):
+            break
+        if ("GaTechAcl" in line):
+            if (entries != None):
+                entries_list.append((name, entries))
+            name = line
+            entries = []
+            fin.readline()
+#            if (len(entries_list) > ):
+#                break
+        else:
+            tokens = line.rsplit(' ')
+            entry = Entry()
+            entry.set_fields(tokens, True)
+            found = False
+            for e in entries:
+                if (e.eq(entry)):
+                    found = True
+            if (not found):
+                entries.append(entry)
+    if (entries != None) and (len(entries) > 0):
+        entries_list.append((name, entries))
+    fin.close()
+    return entries_list
+
 
 def readin_purdue(input):
     fin = open(input, "r")
@@ -192,7 +224,7 @@ def across_acls(units_list):
     for sip1 in sips:
         found = False
         sip_count = sip_count + 1
-        print sip_count, len(groups)
+#        print sip_count, len(groups)
         ## examine if the sip belongs to an existing group
         for group in groups:
             sip2 = group[0]
@@ -250,81 +282,73 @@ is_purdue = (sys.argv[3] == 'p')
 
 if is_purdue:
     entries_list = readin_purdue(input)
-
+else:
     if 'a' in mode:
-        src_units = []
-        dst_units = []
-        if ('s' in mode) or ('m' in mode):
-            src_units_list = []
-            for name, entries in entries_list:
-                units = analyze(entries, True)
-                if (len(units) == 1):
-                    continue
-                src_units_list.append(units)
-            src_units = across_acls(src_units_list)
-            if ('s' in mode):
-                print "unit", len(src_units)
-
-        if ('d' in mode) or ('m' in mode):
-            dst_units_list = []
-            for name, entries in entries_list:
-                units = analyze(entries, True)
-                if (len(units) == 1):
-                    continue
-                dst_units_list.append(units)
-            print "across"
-            dst_units = across_acls(dst_units_list)
-            print "across done"
-            if ('d' in mode):
-                print "unit", len(dst_units)
-            
-        if ('m' in mode):
-            if ('s' in mode):
-                print "src_unit", len(src_units)
-                print "dst_unit", len(dst_units)
-            for name, entries in entries_list:
-                new_entries = minimum_rules(entries, src_units, dst_units)
-                print "len", len(entries), len(new_entries)
-
+        entries_list = readin_gatech_m(input)
     else:
-        for name, entries in entries_list:
-            print "ACL", name
-            if ('s' in mode):
-                units = analyze(entries, True)
-                print "unit", len(units)
-            elif ('d' in mode):
-                units = analyze(entries, False)
-                print "unit", len(units)
-            elif ('m' in mode):
-                src_units = analyze(entries, True)
-                dst_units = analyze(entries, False)
-                print "src_unit", len(src_units)
-                print src_units
-                print "dst_unit", len(dst_units)
-                print dst_units
-                new_entries = minimum_rules(entries, src_units, dst_units)
-                print "len", len(entries), len(new_entries)
-#                print "\n".join(str(e) for e in entries)
-#                print "......"
-#                print "\n".join(str(e) for e in new_entries)
+        entries_list = [("", readin_gatech_s(input))]
 
+if 'a' in mode:
+    src_units = []
+    dst_units = []
+    if ('s' in mode) or ('m' in mode):
+        src_units_list = []
+        for name, entries in entries_list:
+            units = analyze(entries, True)
+            if (len(units) == 1):
+                continue
+            src_units_list.append(units)
+            src_units = across_acls(src_units_list)
+        if ('s' in mode):
+            print "unit", len(src_units)
+
+    if ('d' in mode) or ('m' in mode):
+        dst_units_list = []
+        for name, entries in entries_list:
+            units = analyze(entries, False)
+            if (len(units) == 1):
+                continue
+            dst_units_list.append(units)
+            dst_units = across_acls(dst_units_list)
+        if ('d' in mode):
+            print "unit", len(dst_units)
+
+    if ('s' in mode):
+        print "src_unit", len(src_units)
+    elif ('d' in mode):
+        print "dst_unit", len(dst_units)
+    elif ('m' in mode):
+        for name, entries in entries_list:
+            if (is_purdue):
+                print name
+            else:
+                print name,
+            print "src_unit", len(src_units)
+            print src_units
+            print "dst_unit", len(dst_units)
+            print dst_units
+            new_entries = minimum_rules(entries, src_units, dst_units)
+            print "len", len(entries), len(new_entries)
+            print "\n".join(str(e) for e in new_entries)
 
 else:
-    entries = readin(input)
-    if ('s' in mode):
-        units = analyze(entries, True)
-        print "unit", len(units)
-    elif ('d' in mode):
-        units = analyze(entries, False)
-        print "unit", len(units)
-    elif ('m' in mode):
-        src_units = analyze(entries, True)
-        dst_units = analyze(entries, False)
-        print "src_unit", len(src_units)
-        print src_units
-        print "dst_unit", len(dst_units)
-        print dst_units
-        new_entries = minimum_rules(entries, src_units, dst_units)
-        print "len", len(entries), len(new_entries)
-        print "\n".join(str(e) for e in new_entries)
+    for name, entries in entries_list:
+        if (is_purdue):
+            print "ACL", name
+        if ('s' in mode):
+            units = analyze(entries, True)
+            print "unit", len(units)
+        elif ('d' in mode):
+            units = analyze(entries, False)
+            print "unit", len(units)
+        elif ('m' in mode):
+            src_units = analyze(entries, True)
+            dst_units = analyze(entries, False)
+            print "src_unit", len(src_units)
+            print src_units
+            print "dst_unit", len(dst_units)
+            print dst_units
+            new_entries = minimum_rules(entries, src_units, dst_units)
+            print "len", len(entries), len(new_entries)
+            print "\n".join(str(e) for e in new_entries)
     

@@ -1,17 +1,27 @@
-if [ "$1" == "gbatech" ]; then
+if [ "$1" == "cat_gatech" ]; then
+    rm gatech.all
+    for f in ../../../QoS/GaTechAcl/*
+    do
+	echo $f >> gatech.all
+	cat $f >> gatech.all
+    done
+fi
+
+if [ "$1" == "gatech_s" ]; then
     echo "" > gatech.m_summary
     for f in  ../../../QoS/GaTechAcl/*
     do
 	echo $f >> gatech.m_summary
-#       python Acl2Attr.py $f s > ${f}_s.summary
-#       python Acl2Attr.py $f d > ${f}_d.summary
-#	python policy_unit.py $f s g > ${f}_unit_s.summary
 	python policy_unit.py $f m g >> gatech.m_summary
     done
-
-#    echo "mv"
-#    mv ../../GaTechAcl/*.summary ./
 fi
+
+if [ "$1" == "gatech_m" ]; then
+    f=gatech.all
+    echo "" >  gatech.all.m_summary
+    python policy_unit.py $f am g >> gatech.all.m_summary
+fi
+
 
 if [ "$1" == "purdue" ]; then
 #    echo "" > purdue.s_summary
