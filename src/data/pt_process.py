@@ -164,7 +164,7 @@ mode = sys.argv[2]
 ## g for generate, e for evaluate
 order = [userclass, "csnetgroups", status_str, "style", "cs_owned", "room", "os"]
 #, "manufacturer"]
-order = order[:5]
+#order = order[:5]
 if ("g" in mode):
     hosts = readin(file)
     info = analyze(hosts)

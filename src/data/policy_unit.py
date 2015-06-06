@@ -299,7 +299,7 @@ if 'a' in mode:
             if (len(units) == 1):
                 continue
             src_units_list.append(units)
-            src_units = across_acls(src_units_list)
+        src_units = across_acls(src_units_list)
         if ('s' in mode):
             print "unit", len(src_units)
 
@@ -310,7 +310,7 @@ if 'a' in mode:
             if (len(units) == 1):
                 continue
             dst_units_list.append(units)
-            dst_units = across_acls(dst_units_list)
+        dst_units = across_acls(dst_units_list)
         if ('d' in mode):
             print "unit", len(dst_units)
 

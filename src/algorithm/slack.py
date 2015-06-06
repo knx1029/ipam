@@ -295,7 +295,8 @@ def enum_slack(policies, debug = False):
 
 
     ## starts here
-    nbit = power_of_two(policies.m)
+#    nbit = power_of_two(policies.m)
+    nbit = 19
 
     ## stores the slack each attribute can accommodate
     slack_size = dict()
@@ -480,7 +481,8 @@ def main(input_filename, mode):
             elif ('e' in mode):
                 slack_policies = enum_slack(policies, debug)
             if (not debug):
-                print nbits + 1
+#                print nbits + 1
+                print 20
                 writeout_policies(slack_policies, patterns)
             else:
                 print ""
