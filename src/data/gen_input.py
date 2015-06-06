@@ -3,6 +3,47 @@ import math
 from utils import *
 
 
+def ip_diff(ip1, ip2):
+    if (not ip_contain(ip1, ip2)):
+        return {ip1}
+    ret = set()
+    ip = ip2
+    while (ip > ip1):
+        if (ip & 1) == 0:
+            ret.add(ip - 1)
+        else:
+            ret.add(ip + 1)
+        ip = (ip - 1) / 2
+    return ret
+
+def disjoint(units):
+    ip_sets = []
+    for unit in units:
+        ip_sets.append(set(unit))
+    for i1 in range(len(units)):
+        for i2 in range(len(units)):
+            if (i1 == i2):
+                continue
+            u1 = ip_sets[i1]
+            u2 = ip_sets[i2]
+            ## u1 = u1 \ i2
+            for ip2 in u2:
+                while (True):
+                    new_set = None
+                    old_ip = None
+                    for ip1 in u1:
+                        if (ip_contain(ip1, ip2)):
+                            old_ip = ip1
+                            new_set = ip_diff(ip1, ip2)
+                            break
+                    if (old_ip != None):
+                        u1.remove(old_ip)
+                        u1.update(new_set)
+                    else:
+                        break
+
+    new_units = [list(s) for s in ip_sets]
+    return new_units
 
 class Input:
     threshold = (1<<32) - 1
@@ -320,6 +361,7 @@ def readin(filename):
     ## to filter small acl in purdue's configuration
     def not_long(len_str):
         tokens = len_str.split(' ')
+#        return False
         return (int(tokens[1]) < 100)
 
     ## starts here
@@ -382,7 +424,7 @@ def readin(filename):
     return inputs
 
 
-def eval(inputs, ipam_filename, weighted = False):
+def eval(inputs, ipam_filename, weighted = False, non_overlap = False):
     if (weighted):
         print "name, original_rules, bitsegmentation, opt, prefix, wildcard, ips, bits, sunit, dunit, min_group_size, max_group_size"
     else:
@@ -432,12 +474,15 @@ def eval(inputs, ipam_filename, weighted = False):
             print ipam_w, ",",
         else:
             original = 0
-            for unit in input.sunit:
+            sunit, dunit = input.sunit, input.dunit
+            if (non_overlap):
+                sunit, dunit = disjoint(sunit), disjoint(dunit)
+            for unit in sunit:
                 if (0 in unit):
                     original = original + len(unit) - 1
                 else:
                     original = original + len(unit)
-            for unit in input.dunit:
+            for unit in dunit:
                 if (0 in unit):
                     original = original + len(unit) - 1
                 else:
@@ -473,7 +518,7 @@ if ("s" in mode):
     fout.close()
 elif ("e" in mode):
     ipam_filename = sys.argv[3]
-    eval(inputs, ipam_filename, 'w' in mode)
+    eval(inputs, ipam_filename, 'w' in mode, 'n' in mode)
 elif ("c" in mode):
     def writelists(file, osl):
         fout = open(file, "w")

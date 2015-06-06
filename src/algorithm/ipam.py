@@ -176,10 +176,19 @@ def get_leveled_terms(policies, patterns):
     def mask_term(term1, term2, ps):
         dims = copy.copy(term1.dims)
         for i in range(len(term1.dims)):
-            if (term1.dims[i] == term2.dims[i]):
+            ## TRY
+            # if (term1.dims[i] == term2.dims[i]):
+            if (term1.dims[i] == term2.dims[i]) and (term1.o_dims[i]) and (term2.o_dims[i]):
                 dims[i] = term1.dims[i]
             else:
                 dims[i] = WC
+        ## TRY
+        for pattern in ps:
+            for i in range(len(pattern.dims)):
+                if (pattern.dims[i] != WC):
+                    term1.o_dims[i] = False
+                    term2.o_dims[i] = False
+
         sum_ps =  sum_ps_weight(ps)
         return Term(term1.level + 1,
                     dims,
@@ -531,18 +540,22 @@ def wildcard(policies, patterns):
     max_rules = 0
     min_rules = 0
     for p in patterns:
+#        print p.id, ":", p.dims
         minterm = 0
         maxterm = 0
         for level, terms in leveled_terms.items():
             for term in terms:
                 #print str(term)
                 if (p.contain(term.dims)):
+#                    print str(term)
                     if (p not in term.edges):
                         min_rules = min_rules + p.weight
                         minterm = minterm + 1
                     if (term.subs == None):
                         max_rules = max_rules + p.weight
                         maxterm = maxterm + 1
+        if (minterm != 1):
+            print "!!!!!!"
         print "min_pattern", minterm
         print "max_pattern", maxterm
 

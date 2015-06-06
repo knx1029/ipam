@@ -23,19 +23,25 @@ if [ "$1" == "gatech_m" ]; then
 fi
 
 
-if [ "$1" == "purdue" ]; then
-#    echo "" > purdue.s_summary
-#    echo "" > purdue.d_summary
-#    echo "" > purdue.m_summary
+if [ "$1" == "cat_purdue" ]; then
+    rm purdue.all
+    for f in ../../../QoS/PurdueAcl/configs/config*
+    do
+	cat $f >> purdue.all
+    done
+fi
 
+if [ "$1" == "purdue" ]; then
     for f in  ../../../QoS/PurdueAcl/configs/config*
     do
-#	echo "config $f" >> purdue.d_summary
-#	python policy_unit.py $f d p >> purdue.d_summary
-#	echo "config $f" >> purdue.s_summary
-#	python policy_unit.py $f s p >> purdue.s_summary
 	echo "config $f" >> purdue.m_summary
 	python policy_unit.py $f m p >> purdue.m_summary
     done
 
+fi
+
+if [ "$1" == "purdue_m" ]; then
+    f=purdue.all
+    echo "" > purdue.all.m_summary
+    python policy_unit.py $f am p >> purdue.all.m_summary
 fi

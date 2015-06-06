@@ -284,6 +284,16 @@ def all_slack(policies, debug = False):
 ## use slack of attributes. use match_up for the left-over
 def enum_slack(policies, debug = False):
 
+    def ddebug():
+        sumc = 0
+        for (key, c) in slack_counts.items():
+            if (key[0] == '4'):
+                print key, c
+                sumc = sumc + c
+        print sumc
+        print slack_size[(0, '4')]
+
+
     ## starts here
     nbit = power_of_two(policies.m)
 
@@ -375,6 +385,9 @@ def enum_slack(policies, debug = False):
             addup_values(slack_counts, gv, req_slack)
         ## ---- end of the while loop ----- #
 
+    if (debug):
+        ddebug()
+
     ## match up the attributes
     slack_dict = dict()
     for ((di, dv), (sl, sz)) in slack_size.items():
@@ -419,6 +432,9 @@ def enum_slack(policies, debug = False):
                               slack_counts,
                               True)
 
+    if (debug):
+        ddebug()
+
     return slack_policies
 
 
@@ -456,7 +472,7 @@ def main(input_filename, mode):
         inputs = ipam.readin(input_filename, 'c' in mode, True)
         for policies, patterns, nbits in inputs:
 #        if (True):
-#            policies, patterns, nbitx = inputs[1]
+#            policies, patterns, nbits = inputs[2]
             if ('i' in mode):
                 slack_policies = min_slack(policies, debug)
             elif ('a' in mode):

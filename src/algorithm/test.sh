@@ -111,3 +111,22 @@ if [ "$1" == "purdue" ]; then
 	done
      fi
 fi
+
+
+if [ "$1" == "princeton" ]; then
+    echo "ipam"
+    name=princeton
+    ipam_input=../data/ptdata/${name}
+    ipam_output=${name}.ipam
+    ipam_summary=purdue.${o}.perf.csv
+    python main.py ${ipam_input} mc > ${ipam_output}
+    for mode in mca mce ; do #mci
+	echo "mode=${mode}"
+	slack_input=${mode}_slack_${name}
+	ipam_output=${mode}_slack_${name}.ipam
+	echo "slack"
+	python slack.py ${ipam_input} ${mode} > ${slack_input}
+	echo "ipam"
+	python main.py ${slack_input} mc > ${ipam_output}
+    done
+fi

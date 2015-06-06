@@ -89,6 +89,8 @@ class Term:
         Term.id = Term.id + 1
         self.level = level
         self.dims = dims
+        ## TRY
+        self.o_dims = [True] * len(dims)
         self.edges = dict()
         ## sum_ps is the total weights of patterns matched by this term
         self.sum_ps = sum_ps
@@ -104,11 +106,11 @@ class Term:
         if self.subs:
             sub_str = "({0},{1})".format(self.subs[0].id, self.subs[1].id)
         return "id{0}, L{1}, dims=[{2}], e={3}, subs={4}, w={5}".format(self.id,
-                                                                      self.level,
-                                                                      ' '.join(self.dims),
-                                                                      edge_str,
-                                                                      sub_str,
-                                                                      self.weight)
+                                                                        self.level,
+                                                                        ' '.join(self.dims),
+                                                                        edge_str,
+                                                                        sub_str,
+                                                                        self.weight)
 
 class BitValue:
 

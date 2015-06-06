@@ -208,6 +208,7 @@ def analyze(entries, use_sip):
 
 def across_acls(units_list):
 
+    print "units_list", len(units_list)
     ## starts here
     sips = set()
     for units in units_list:
@@ -216,7 +217,7 @@ def across_acls(units_list):
                 if (sip not in sips):
                     sips.add(sip)
     sips = closed_sip_set(sips)
-#    print len(sips)
+    print "#sips", len(sips)
 
     groups = []
     sip_count = 0
@@ -242,7 +243,7 @@ def across_acls(units_list):
         if (not found):
             groups.append([sip1])
 
-#    print "groups", len(groups)
+    print "groups", len(groups)
 #    for group in groups:
 #        print "sips", len(group)
 #        print "\n".join(intip2str(k) for k in group)
@@ -320,6 +321,8 @@ if 'a' in mode:
     elif ('m' in mode):
         for name, entries in entries_list:
             if (is_purdue):
+                if (len(entries) < 100):
+                    continue
                 print name
             else:
                 print name,
