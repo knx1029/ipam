@@ -18,7 +18,7 @@ if [ "$1" == "gen" ]; then
     fi
 
     if [ "$2" == "gall" ]; then
-	input=gatech_one_all.m_summary
+	input=gatech_all.m_summary
 	echo "dpu weighted"
 	python gen_input.py ${input} sdw
 	echo "dpu"
@@ -31,6 +31,19 @@ if [ "$1" == "gen" ]; then
 
     if [ "$2" == "purdue" ]; then
 	input=pdata/purdue.m_summary
+	echo "dpu weighted"
+	python gen_input.py ${input} sdw
+	echo "dpu"
+	python gen_input.py ${input} sd
+	echo "jpu weighted"
+	python gen_input.py ${input} sjw
+	echo "jpu"
+	python gen_input.py ${input} sj
+    fi
+
+
+    if [ "$2" == "pall" ]; then
+	input=purdue_all.m_summary
 	echo "dpu weighted"
 	python gen_input.py ${input} sdw
 	echo "dpu"
@@ -56,26 +69,51 @@ if [ "$1" == "eval" ]; then
     fi
 
     if [ "$2" == "gall" ]; then
-	input=gatech_all.m_summary
+	input=gatech_all_all.m_summary
 
 	mode=sd
 	output=gatech_all_all.${mode}.ipam
-	perf_output=gatech_all.${mode}.perf.csv
+	perf_output=gatech_all_all.${mode}.perf.csv
 	echo ${mode}
-#	python gen_input.py ${input} e ../algorithm/${output} > ../algorithm/${perf_output}
+	python gen_input.py ${input} e ../algorithm/${output} > ../algorithm/${perf_output}
 	for o in mce mca ; do
 	    echo $o
-#	    python gen_input.py ${input} e ../algorithm/${o}_slack_${output} > ../algorithm/${o}_slack_${perf_output}
+	    python gen_input.py ${input} e ../algorithm/${o}_slack_${output} > ../algorithm/${o}_slack_${perf_output}
 	done
 
 	mode=sdw
 	output=gatech_all_all.${mode}.ipam
-	perf_output=gatech_all.${mode}.perf.csv
+	perf_output=gatech_all_all.${mode}.perf.csv
 	echo ${mode}
 	python gen_input.py ${input} ew ../algorithm/${output} > ${perf_output}
-	for o in mce ; do # mca ; do
+	for o in mce mca ; do
 	    echo ${o}
-#	    python gen_input.py ${input} ew ../algorithm/${o}_slack_${output} > ../algorithm/${o}_slack_${perf_output}
+	    python gen_input.py ${input} ew ../algorithm/${o}_slack_${output} > ../algorithm/${o}_slack_${perf_output}
 	done
     fi
+
+    if [ "$2" == "pall" ]; then
+	input=purdue_all_all.m_summary
+
+	mode=sd
+	output=purdue_all_all.${mode}.ipam
+	perf_output=purdue_all_all.${mode}.perf.csv
+	echo ${mode}
+	python gen_input.py ${input} e ../algorithm/${output} > ../algorithm/${perf_output}
+	for o in mce mca ; do
+	    echo $o
+	    python gen_input.py ${input} e ../algorithm/${o}_slack_${output} > ../algorithm/${o}_slack_${perf_output}
+	done
+
+	mode=sdw
+	output=purdue_all_all.${mode}.ipam
+	perf_output=purdue_all_all.${mode}.perf.csv
+	echo ${mode}
+	python gen_input.py ${input} ew ../algorithm/${output} > ${perf_output}
+	for o in mce mca ; do
+	    echo ${o}
+	    python gen_input.py ${input} ew ../algorithm/${o}_slack_${output} > ../algorithm/${o}_slack_${perf_output}
+	done
+    fi
+
 fi

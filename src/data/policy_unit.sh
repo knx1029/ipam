@@ -27,6 +27,7 @@ if [ "$1" == "cat_purdue" ]; then
     rm purdue.all
     for f in ../../../QoS/PurdueAcl/configs/config*
     do
+	echo $f >> purdue.all
 	cat $f >> purdue.all
     done
 fi

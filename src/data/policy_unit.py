@@ -292,12 +292,16 @@ else:
 if 'a' in mode:
     src_units = []
     dst_units = []
+    print len(entries_list)
     if ('s' in mode) or ('m' in mode):
         src_units_list = []
+        idx = 0
         for name, entries in entries_list:
             units = analyze(entries, True)
             if (len(units) == 1):
                 continue
+            idx = idx + 1
+            print "src", idx, name, len(units)
             src_units_list.append(units)
         src_units = across_acls(src_units_list)
         if ('s' in mode):
@@ -309,6 +313,7 @@ if 'a' in mode:
             units = analyze(entries, False)
             if (len(units) == 1):
                 continue
+            print "dst", name, len(units)
             dst_units_list.append(units)
         dst_units = across_acls(dst_units_list)
         if ('d' in mode):

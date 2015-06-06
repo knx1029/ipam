@@ -284,6 +284,24 @@ def all_slack(policies, debug = False):
 ## use slack of attributes. use match_up for the left-over
 def enum_slack(policies, debug = False):
 
+    def extra_slack(dims, req_slack):
+        ## deduct slack
+        for di, dv in enumerate(dims):
+            sl, sz = slack_size[(di, dv)]
+            if (req_slack > sl):
+                nc = nochange(sz, req_slack - sl)
+                left_slack[di] = left_slack[di] - nc
+                slack_size[(di, dv)] = (sl + nc - req_slack, sz + nc)
+            else:
+                slack_size[(di, dv)] = (sl - req_slack, sz)
+
+        ## add slack to the group
+        slack_groups[gv] = slack_groups[gv] + req_slack
+
+        ## add slack (by creating new hosts)
+        addup_values(slack_counts, gv, req_slack)
+
+
     def ddebug():
         sumc = 0
         for (key, c) in slack_counts.items():
@@ -295,8 +313,8 @@ def enum_slack(policies, debug = False):
 
 
     ## starts here
-#    nbit = power_of_two(policies.m)
-    nbit = 19
+    nbit = power_of_two(policies.m)
+#    nbit = 15
 
     ## stores the slack each attribute can accommodate
     slack_size = dict()
@@ -369,21 +387,7 @@ def enum_slack(policies, debug = False):
                 pass
 #                print "add", req_slack, "to", gv
 
-            ## deduct slack
-            for di, dv in enumerate(dims):
-                sl, sz = slack_size[(di, dv)]
-                if (req_slack > sl):
-                    nc = nochange(sz, req_slack - sl)
-                    left_slack[di] = left_slack[di] - nc
-                    slack_size[(di, dv)] = (sl + nc - req_slack, sz + nc)
-                else:
-                    slack_size[(di, dv)] = (sl - req_slack, sz)
-
-            ## add slack to the group
-            slack_groups[gv] = slack_groups[gv] + req_slack
-
-            ## add slack (by creating new hosts)
-            addup_values(slack_counts, gv, req_slack)
+            extra_slack(dims, req_slack)
         ## ---- end of the while loop ----- #
 
     if (debug):
@@ -481,8 +485,8 @@ def main(input_filename, mode):
             elif ('e' in mode):
                 slack_policies = enum_slack(policies, debug)
             if (not debug):
-#                print nbits + 1
-                print 20
+                print nbits + 1
+#                print 16
                 writeout_policies(slack_policies, patterns)
             else:
                 print ""

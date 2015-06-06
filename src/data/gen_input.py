@@ -206,7 +206,7 @@ class Input:
         ## create group size
         group_size = dict()
         for ip in ips:
-            if (ip == 0):
+            if (ip == 0) or (ip_counts[ip] == 0):
                 continue
             best_i = find_best(ip, self.sunit)
             best_j = find_best(ip, self.dunit)
