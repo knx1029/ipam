@@ -554,8 +554,6 @@ def wildcard(policies, patterns):
                     if (term.subs == None):
                         max_rules = max_rules + p.weight
                         maxterm = maxterm + 1
-        if (minterm != 1):
-            print "!!!!!!"
         print "min_pattern", minterm
         print "max_pattern", maxterm
 

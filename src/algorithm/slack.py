@@ -301,15 +301,49 @@ def enum_slack(policies, debug = False):
         ## add slack (by creating new hosts)
         addup_values(slack_counts, gv, req_slack)
 
+    ## try to make the size of each attribute closer, by
+    ## doubling the smallest
+    def adjust_slack_size(slack_size, ith, ith_counts, left_slack):
+        init_size = dict()
+        for v, c in ith_counts.items():
+            y = power_of_two(c)
+            sz = (1 << y)
+            sl = (1 << y) - c
+            init_size[v] = (sl, sz)
+            left_slack[ith] = left_slack[ith] - sl
 
-    def ddebug():
-        sumc = 0
-        for (key, c) in slack_counts.items():
-            if (key[0] == '4'):
-                print key, c
-                sumc = sumc + c
-        print sumc
-        print slack_size[(0, '4')]
+        while (True):
+            best_v = -1
+            best_nc = 0
+            max_sz = 0
+            for v, (sl, sz) in init_size.items():
+                if (sz > max_sz):
+                    max_sz = sz
+                nc = nochange(sz, 1)
+                if (nc <= left_slack[ith]):
+                    if (best_v < 0) or (nc < best_nc):
+                        best_v, best_nc = v, nc
+            if (best_v < 0):
+                break
+#            if (sz == max_sz):
+            if (sz <= max_sz / 2):
+                break
+            best_sl, best_sz = init_size[best_v]
+            init_size[best_v] = (best_sl + best_nc, best_sz + best_nc)
+            left_slack[ith] = left_slack[ith] - best_nc
+
+        for v, (sl, sz) in init_size.items():
+            slack_size[(ith, v)] = (sl, sz)
+
+
+    def update_slack_size(slack_size, ith, ith_counts, left_slack):
+        for v, c in ith_counts.items():
+            y = power_of_two(c)
+            sz = (1 << y)
+            sl = (1 << y) - c
+            slack_size[(ith, v)] = (sl, sz)
+            left_slack[ith] = left_slack[ith] - sl
+
 
 
     ## starts here
@@ -331,14 +365,12 @@ def enum_slack(policies, debug = False):
         ith_policy = policies.project(i)
         ith_counts = ith_policy.counts
         left_slack[i] = max_slack
-        for v, c in ith_counts.items():
-            y = power_of_two(c)
-            sz = (1 << y)
-            sl = (1 << y) - c
-            slack_size[(i, v)] = (sl, sz)
-            left_slack[i] = left_slack[i] - sl
-            if int(v) >= max_v:
-                max_v = int(v) + 1
+        max_v = max(max_v, max(map(lambda(x): int(x), ith_counts.keys())) + 1)
+        ## TRY
+        if (True):
+            adjust_slack_size(slack_size, i, ith_counts, left_slack)
+        else:
+            update_slack_size(slack_size, i, ith_counts, left_slack)
     fake_v = str(max_v)
     if (debug):
         print "fake_v", fake_v
@@ -390,8 +422,6 @@ def enum_slack(policies, debug = False):
             extra_slack(dims, req_slack)
         ## ---- end of the while loop ----- #
 
-    if (debug):
-        ddebug()
 
     ## match up the attributes
     slack_dict = dict()
@@ -437,9 +467,6 @@ def enum_slack(policies, debug = False):
                               slack_counts,
                               True)
 
-    if (debug):
-        ddebug()
-
     return slack_policies
 
 
@@ -475,9 +502,9 @@ def main(input_filename, mode):
             writeout_policies(slack_policies, patterns)
     elif ('m' in mode):
         inputs = ipam.readin(input_filename, 'c' in mode, True)
-        for policies, patterns, nbits in inputs:
+        for policies, patterns, nbits in inputs[:6]:
 #        if (True):
-#            policies, patterns, nbits = inputs[2]
+#            policies, patterns, nbits = inputs[1]
             if ('i' in mode):
                 slack_policies = min_slack(policies, debug)
             elif ('a' in mode):

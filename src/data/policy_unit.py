@@ -216,7 +216,12 @@ def across_acls(units_list):
             for sip in unit:
                 if (sip not in sips):
                     sips.add(sip)
-    sips = closed_sip_set(sips)
+    if (0 in sips):
+        sips.remove(0)
+        sips = closed_sip_set(sips)
+        sips.add(0)
+    else:
+        sips = closed_sip_set(sips)
     print "#sips", len(sips)
 
     groups = []
@@ -283,6 +288,7 @@ is_purdue = (sys.argv[3] == 'p')
 
 if is_purdue:
     entries_list = readin_purdue(input)
+    print len(entries_list)
 else:
     if 'a' in mode:
         entries_list = readin_gatech_m(input)

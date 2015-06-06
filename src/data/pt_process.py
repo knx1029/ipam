@@ -3,6 +3,7 @@ import math
 
 userclass = "userclass"
 status_str = "status"
+room_str = "room"
 
 def readin(file, cleanup = True):
     fin = open(file, 'r')
@@ -18,6 +19,10 @@ def readin(file, cleanup = True):
                         new_host[userclass] = "guest"
                     elif (new_host[userclass] == "fac"):
                         new_host[userclass] = "faculty"
+                    if (room_str not in new_host):
+                        new_host[room_str] = "unknown"
+                    elif (new_host[room_str] =="other/unknown"):
+                        new_host[room_str] = "unknown"
                 hosts.append(new_host)
                 new_host = dict()
         else:
@@ -86,7 +91,9 @@ def count_hosts(info, hosts, dims):
             attr = host[dim]
             attrs = info[dim][0]
             attr_idx[idx] = attrs.index(attr) + 1
+#            attr_idx[idx] = attr
         key = ' '.join(str(i) for i in attr_idx)
+#        key = ';'.join(str(i) for i in attr_idx)
         if (key in counts):
             counts[key] = counts[key] + 1
         else:
@@ -94,12 +101,12 @@ def count_hosts(info, hosts, dims):
     return counts
 
 
-def gen_input(info, hosts, order):
+def gen_input(info, hosts, order, start = 1):
     def num2bits(n):
         return int(math.ceil(math.log(n)/math.log(2.0) - 1e-9))
 
     nbits = num2bits(len(hosts))
-    for l in range(1, len(order) + 1):
+    for l in range(start, len(order) + 1):
 #    if (True):
 #        l = 1
         attr_value = [None] * l
@@ -134,7 +141,7 @@ def gen_input(info, hosts, order):
     pass
 
 
-def eval(ipam_filename, ninputs):
+def eval(ipam_filename, info, order, ninputs):
     fipam = open(ipam_filename, "r")
     print "index, opt, prefix, wildcard"
     for i in range(ninputs):
@@ -158,17 +165,80 @@ def eval(ipam_filename, ninputs):
                 ipam_pcount.append(pc)
 
         print i, ",", sum(min_pcount), ",", sum(max_pcount), ",", sum(ipam_pcount)
+        last = 0
+        for dim in order:
+            attrs, counts = info[dim]
+            ndim = len(attrs)
+            print dim, ",", sum(min_pcount[last:last+ndim]), 
+            print ",", sum(max_pcount[last:last+ndim]), 
+            print ",", sum(ipam_pcount[last:last+ndim]),
+            print ",", len(hosts)
+            last = last + ndim
+
+
+def vlan_rt(hosts):
+    def vlan_no(host):
+        u = host[userclass]
+        if ("fac" in u):
+            return 0
+        elif ("grad" in u) :
+            return 1
+        elif ("research" in u):
+            return 4
+        elif ("staff" in u):
+            return 2
+        else:
+            return 3
+
+    def add_one(dd, key):
+        if (key not in dd):
+            dd[key] = 1
+        else:
+            dd[key] = dd[key] + 1
+
+    stretch_counts = dict()
+    pair_counts = dict()
+    for i1 in range(len(hosts)):
+        for i2 in range(i1 + 1, len(hosts)):
+            host1 = hosts[i1]
+            host2 = hosts[i2]
+            v1 = vlan_no(host1)
+            v2 = vlan_no(host2)
+            r1 = host1[room_str]
+            r2 = host2[room_str]
+            if (v1 != v2) and (r1 == r2):
+                if (v1 < v2):
+                    add_one(stretch_counts, (v1, v2))
+                else:
+                    add_one(stretch_counts, (v2, v1))
+            if (v1 < v2):
+                add_one(pair_counts, (v1, v2))
+            else:
+                add_one(pair_counts, (v2, v1))
+
+    for  vp, pc in pair_counts.items():
+        sc = 0
+        if (vp in stretch_counts):
+            sc = stretch_counts[vp]
+            print vp, " : ", sc, "/", pc
 
 file = sys.argv[1]
 mode = sys.argv[2]
 ## g for generate, e for evaluate
-order = [userclass, "csnetgroups", status_str, "style", "cs_owned", "room", "os"]
+order = [userclass, "csnetgroups", status_str, "style", "cs_owned", room_str, "os"]
 #, "manufacturer"]
-#order = order[:5]
+#order = order[:6]
+order = [userclass, "csnetgroups", room_str]
+#status_str, 
+
+hosts = readin(file)
+info = analyze(hosts)
 if ("g" in mode):
-    hosts = readin(file)
-    info = analyze(hosts)
 #    show_info(info)
-    gen_input(info, hosts, order)
+#    gen_input(info, hosts, order)
+    gen_input(info, hosts, order, len(order))
 elif ('e' in mode):
-    eval(file, len(order))
+    ipamfile = sys.argv[3]
+    eval(ipamfile, info, order, 1)
+elif ('v' in mode):
+    vlan_rt(hosts)

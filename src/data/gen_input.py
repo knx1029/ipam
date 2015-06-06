@@ -103,12 +103,21 @@ class Input:
 
     def _get_ips(self):            
         ## starts here
+        ## filter out bigger ip subnet ( >/16)
         ip_set = set()
         for unit in self.sunit:
-            ip_set.update(set(unit))
+            for ip in unit:
+                if (ip < SUBNET_THRESHOLD):
+                    continue
+                ip_set.add(ip)
+#            ip_set.update(set(unit))
         for unit in self.dunit:
-            ip_set.update(set(unit))
-    
+            for ip in unit:
+                if (ip < SUBNET_THRESHOLD):
+                    continue
+                ip_set.add(ip)
+#            ip_set.update(set(unit))    
+
         while (True):
             updated = False
             new_set = set()
@@ -208,6 +217,8 @@ class Input:
         for ip in ips:
             if (ip == 0) or (ip_counts[ip] == 0):
                 continue
+            if (ip < SUBNET_THRESHOLD):
+                continue
             best_i = find_best(ip, self.sunit)
             best_j = find_best(ip, self.dunit)
             key = "{0} {1}".format(str(best_i + 1), str(best_j + 1))
@@ -277,8 +288,11 @@ class Input:
         group_size = dict()
         values = [0] * ndims
         for ip in ips:
-            if (ip == 0):
+            if (ip == 0) or (ip_counts[ip] == 0):
                 continue
+            if (ip < SUBNET_THRESHOLD):
+                continue
+
             iset = find_all(ip, self.sunit)
             jset = find_all(ip, self.sunit)
             for i in range(ndims):
@@ -500,6 +514,7 @@ def eval(inputs, ipam_filename, weighted = False, non_overlap = False):
     fipam.close()
 
 
+SUBNET_THRESHOLD = (1 << 16) - 1
 
 input_filename = sys.argv[1]
 mode = sys.argv[2]

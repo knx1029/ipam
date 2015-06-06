@@ -18,8 +18,8 @@ fi
 
 if [ "$1" == "gatech_m" ]; then
     f=gatech.all
-    echo "" >  gatech.all.m_summary
-    python policy_unit.py $f am g >> gatech.all.m_summary
+    echo "" >  gatech_all.m_summary_
+    python policy_unit.py $f am g >> gatech.all_m_summary_
 fi
 
 
@@ -43,6 +43,6 @@ fi
 
 if [ "$1" == "purdue_m" ]; then
     f=purdue.all
-    echo "" > purdue.all.m_summary
-    python policy_unit.py $f am p >> purdue.all.m_summary
+    echo "" > purdue_all.m_summary_
+    python policy_unit.py $f am p >> purdue_all.m_summary_
 fi
