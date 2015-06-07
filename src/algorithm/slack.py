@@ -502,7 +502,7 @@ def main(input_filename, mode):
             writeout_policies(slack_policies, patterns)
     elif ('m' in mode):
         inputs = ipam.readin(input_filename, 'c' in mode, True)
-        for policies, patterns, nbits in inputs[:6]:
+        for policies, patterns, nbits in inputs:
 #        if (True):
 #            policies, patterns, nbits = inputs[1]
             if ('i' in mode):

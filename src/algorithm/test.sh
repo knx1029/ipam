@@ -129,7 +129,7 @@ fi
 
 if [ "$1" == "princeton" ]; then
     echo "ipam"
-    name=princeton_rt_acl3
+    name=princeton_select
     ipam_input=../data/ptdata/${name}
     ipam_output=${name}.ipam
 #    python main.py ${ipam_input} mc > ${ipam_output}

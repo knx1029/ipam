@@ -4,6 +4,10 @@ import math
 userclass = "userclass"
 status_str = "status"
 room_str = "room"
+os_str = "os"
+group_str = "csnetgroups"
+cs_str = "cs_owned"
+style_str = "style"
 
 def readin(file, cleanup = True):
     fin = open(file, 'r')
@@ -13,16 +17,29 @@ def readin(file, cleanup = True):
         if (": " not in line):
             if (len(new_host) > 0):
                 if (cleanup):
-                    if ("cs_owned" not in new_host):
-                        new_host["cs_owned"] = "no"
+                    if (cs_str not in new_host):
+                        new_host[cs_str] = "no"
                     if (userclass not in new_host):
                         new_host[userclass] = "guest"
                     elif (new_host[userclass] == "fac"):
                         new_host[userclass] = "faculty"
+
                     if (room_str not in new_host):
                         new_host[room_str] = "unknown"
                     elif (new_host[room_str] =="other/unknown"):
                         new_host[room_str] = "unknown"
+
+                    if (os_str in new_host):
+#                    if (False):
+                        os = new_host[os_str]
+                        if ("linux" in os) or ("ubuntu" in os):
+                            new_host[os_str] = "linux"
+                        elif ("osx" in os) or ("os-x" in os) or ("mac" in os) or ("apple" in os):
+                            new_host[os_str] = "mac-os"
+                        elif ("windows" in os):
+                            new_host[os_str] = "windows"
+                        else:
+                            new_host[os_str] = "other"
                 hosts.append(new_host)
                 new_host = dict()
         else:
@@ -101,44 +118,42 @@ def count_hosts(info, hosts, dims):
     return counts
 
 
-def gen_input(info, hosts, order, start = 1):
+def gen_input(info, hosts, order, start = 1, scales = [1]):
     def num2bits(n):
         return int(math.ceil(math.log(n)/math.log(2.0) - 1e-9))
 
-    nbits = num2bits(len(hosts))
-    for l in range(start, len(order) + 1):
-#    if (True):
-#        l = 1
-        attr_value = [None] * l
-        attr_idx = [-1] * l
-        new_order = order[: l]
-        attrs_counts = sum(map(lambda(x): len(info[x][0]), new_order))
-        counts = count_hosts(info, hosts, new_order)
+    for scale in scales:
+        nbits = num2bits(len(hosts) * scale)
+        for l in range(start, len(order) + 1):
+            attr_value = [None] * l
+            attr_idx = [-1] * l
+            new_order = order[: l]
+            attrs_counts = sum(map(lambda(x): len(info[x][0]), new_order))
+            counts = count_hosts(info, hosts, new_order)
 
-        bs = num2bits(max(counts.values()))
-        for i in range(l):
-            attrs = info[new_order[i]][0]
-            nunits = num2bits(len(attrs))
-            bs = bs + nunits
-#        print max(counts.values()), min(counts.values())
-#        print l, ",", nbits, ",", bs, ",", attrs_counts
-#        continue
+            bs = num2bits(max(counts.values()))
+            for i in range(l):
+                attrs = info[new_order[i]][0]
+                nunits = num2bits(len(attrs))
+                bs = bs + nunits
+#            print max(counts.values()), min(counts.values())
+#            print l, ",", nbits, ",", bs, ",", attrs_counts
+#            continue
 
-        print nbits
-#        print 16
-        print len(counts), l, attrs_counts
-        for (key, value) in counts.items():
-            print key, value
+            print nbits
+#           print 16
+            print len(counts), l, attrs_counts
+            for (key, value) in counts.items():
+                print key, value * scale
 
-        attr_idx = [0] * l
-        for i in range(l):
-            attrs = info[new_order[i]][0]
-            for j in range(len(attrs)):
-                attr_idx[i] = j + 1
-                print " ".join(str(k) for k in attr_idx),
-                print 1
-            attr_idx[i] = 0
-    pass
+            attr_idx = [0] * l
+            for i in range(l):
+                attrs = info[new_order[i]][0]
+                for j in range(len(attrs)):
+                    attr_idx[i] = j + 1
+                    print " ".join(str(k) for k in attr_idx),
+                    print 1
+                attr_idx[i] = 0
 
 
 def eval(ipam_filename, info, order, ninputs):
@@ -225,18 +240,30 @@ def vlan_rt(hosts):
 file = sys.argv[1]
 mode = sys.argv[2]
 ## g for generate, e for evaluate
-order = [userclass, "csnetgroups", status_str, "style", "cs_owned", room_str, "os"]
-#, "manufacturer"]
+#order = [userclass, group_str, os_str,  status_str, cs_str, room_str, style_str, "manufacturer"]
+#order = [userclass, group_str, os_str, status, cs_str, room_str]
+order = [userclass, group_str, room_str, status_str, cs_str, style_str]
 #order = order[:6]
-order = [userclass, "csnetgroups", room_str]
+#order = [userclass, group_str, room_str]
 #status_str, 
 
 hosts = readin(file)
 info = analyze(hosts)
 if ("g" in mode):
+    orders = [[userclass, group_str, room_str],
+              [userclass, group_str, os_str],
+              [userclass, cs_str, os_str],
+              [group_str, status_str, cs_str],
+              [room_str, status_str, style_str],
+              [room_str, cs_str, os_str],
+              [status_str, cs_str, os_str]]
+    for order in orders:
+        gen_input(info, hosts, order, len(order))
+#    print len(hosts)
 #    show_info(info)
 #    gen_input(info, hosts, order)
-    gen_input(info, hosts, order, len(order))
+#    gen_input(info, hosts, order, len(order))
+#    gen_input(info, hosts, order, len(order), [2, 4, 6, 8, 10])
 elif ('e' in mode):
     ipamfile = sys.argv[3]
     eval(ipamfile, info, order, 1)

@@ -288,7 +288,6 @@ is_purdue = (sys.argv[3] == 'p')
 
 if is_purdue:
     entries_list = readin_purdue(input)
-    print len(entries_list)
 else:
     if 'a' in mode:
         entries_list = readin_gatech_m(input)
