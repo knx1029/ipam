@@ -1,6 +1,15 @@
 if [ "$1" == "gcat" ]; then
     for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 ; do
-	cat $2 >> $3
+	for o in sd sdw ; do
+	    f1=../algorithm/gatech_all.${o}.ipam
+	    f2=../algorithm/gatech_all_all.${o}.ipam
+	    cat ${f1} >> ${f2}
+	    for mode in mca mce ; do
+		f1=../algorithm/${mode}_slack_gatech_all.${o}.ipam
+		f2=../algorithm/${mode}_slack_gatech_all_all.${o}.ipam
+		cat ${f1} >> ${f2}
+	    done
+	done
     done
 fi
 
@@ -59,14 +68,14 @@ if [ "$1" == "gen" ]; then
 
 
     if [ "$2" == "pall" ]; then
-	input=purdue_all.m_summary
+	input=purdue_all.m_summary_subnet
 	echo "dpu weighted"
 	python gen_input.py ${input} sdw
 	echo "dpu"
 	python gen_input.py ${input} sd
-#	echo "jpu weighted"
+	echo "jpu weighted"
 #	python gen_input.py ${input} sjw
-#	echo "jpu"
+	echo "jpu"
 #	python gen_input.py ${input} sj
     fi
 fi

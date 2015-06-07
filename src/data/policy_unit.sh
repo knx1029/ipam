@@ -43,6 +43,6 @@ fi
 
 if [ "$1" == "purdue_m" ]; then
     f=purdue.all
-    echo "" > purdue_all.m_summary_
-    python policy_unit.py $f am p >> purdue_all.m_summary_
+    echo "" > purdue_all.m_summary_subnet
+    python policy_unit.py $f am p >> purdue_all.m_summary_subnet
 fi

@@ -367,7 +367,7 @@ def enum_slack(policies, debug = False):
         left_slack[i] = max_slack
         max_v = max(max_v, max(map(lambda(x): int(x), ith_counts.keys())) + 1)
         ## TRY
-        if (True):
+        if (False):
             adjust_slack_size(slack_size, i, ith_counts, left_slack)
         else:
             update_slack_size(slack_size, i, ith_counts, left_slack)

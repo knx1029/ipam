@@ -205,9 +205,19 @@ def analyze(entries, use_sip):
     return units
 
 
+## use /20
+def same_subnet(sip1, sip2):
+    THRESHOLD = (1 << 13) - 1
+    while (sip1 >= THRESHOLD):
+        sip1 = (sip1 - 1) >> 1
+    while (sip2 >= THRESHOLD):
+        sip2 = (sip2 - 1) >> 1
+    return (sip1 == sip2)
+
 
 def across_acls(units_list):
 
+    ## starts here
     print "units_list", len(units_list)
     ## starts here
     sips = set()
@@ -234,6 +244,8 @@ def across_acls(units_list):
         ## examine if the sip belongs to an existing group
         for group in groups:
             sip2 = group[0]
+ #           if (is_purdue and (not same_subnet(sip1, sip2))):
+ #                   continue
             equal = True
             for units in units_list:
                 unit1 = find_unit(sip1, units)
@@ -301,7 +313,7 @@ if 'a' in mode:
     if ('s' in mode) or ('m' in mode):
         src_units_list = []
         idx = 0
-        for name, entries in entries_list:
+        for idx, (name, entries) in enumerate(entries_list):
             units = analyze(entries, True)
             if (len(units) == 1):
                 continue
@@ -314,7 +326,7 @@ if 'a' in mode:
 
     if ('d' in mode) or ('m' in mode):
         dst_units_list = []
-        for name, entries in entries_list:
+        for idx, (name, entries) in enumerate(entries_list):
             units = analyze(entries, False)
             if (len(units) == 1):
                 continue
@@ -333,9 +345,9 @@ if 'a' in mode:
             if (is_purdue):
                 if (len(entries) < 100):
                     continue
-                print name
+                print "ACL", name
             else:
-                print name,
+                print "ACL", name,
             print "src_unit", len(src_units)
             print src_units
             print "dst_unit", len(dst_units)

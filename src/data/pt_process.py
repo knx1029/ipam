@@ -150,7 +150,8 @@ def gen_input(info, hosts, order, start = 1, scales = [1]):
             for i in range(l):
                 attrs = info[new_order[i]][0]
                 for j in range(len(attrs)):
-                    attr_idx[i] = j + 1
+#                    attr_idx[i] = j + 1
+                    attr_idx[i] = "{0}.{1}".format(str(j + 1), attrs[j])
                     print " ".join(str(k) for k in attr_idx),
                     print 1
                 attr_idx[i] = 0
@@ -241,8 +242,8 @@ file = sys.argv[1]
 mode = sys.argv[2]
 ## g for generate, e for evaluate
 #order = [userclass, group_str, os_str,  status_str, cs_str, room_str, style_str, "manufacturer"]
-#order = [userclass, group_str, os_str, status, cs_str, room_str]
-order = [userclass, group_str, room_str, status_str, cs_str, style_str]
+order = [userclass, group_str, os_str, status_str, cs_str, room_str, style_str]
+#order = [userclass, group_str, room_str, status_str, cs_str, style_str]
 #order = order[:6]
 #order = [userclass, group_str, room_str]
 #status_str, 
@@ -257,12 +258,12 @@ if ("g" in mode):
               [room_str, status_str, style_str],
               [room_str, cs_str, os_str],
               [status_str, cs_str, os_str]]
-    for order in orders:
-        gen_input(info, hosts, order, len(order))
+#    for order in orders:
+#        gen_input(info, hosts, order, len(order))
 #    print len(hosts)
 #    show_info(info)
 #    gen_input(info, hosts, order)
-#    gen_input(info, hosts, order, len(order))
+    gen_input(info, hosts, order, len(order))
 #    gen_input(info, hosts, order, len(order), [2, 4, 6, 8, 10])
 elif ('e' in mode):
     ipamfile = sys.argv[3]

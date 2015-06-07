@@ -1,0 +1,3 @@
+all the data are computed based on purdue_all.m_summary_subnet
+
+non_subnet is where policy units are not sub-divided based on their /20 prefixes

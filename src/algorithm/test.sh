@@ -42,7 +42,8 @@ if [ "$1" == "gatech" ]; then
      fi
     if [ "$2" == "all" ]; then
 	echo "ipam"
-	for o in sd sdw ; do #sj sjw ; do
+#	for o in sd sdw ; do #sj sjw ; do
+	for o in sj sjw; do
 	    echo "option=${o}"
 	    input=../data/${name}_all.m_summary
 	    ipam_input=${input}.${o}
@@ -129,17 +130,17 @@ fi
 
 if [ "$1" == "princeton" ]; then
     echo "ipam"
-    name=princeton_select
+    name=princeton_prod
     ipam_input=../data/ptdata/${name}
     ipam_output=${name}.ipam
-#    python main.py ${ipam_input} mc > ${ipam_output}
+    python main.py ${ipam_input} mc > ${ipam_output}
     for mode in  mce ; do #mci
 	echo "mode=${mode}"
 	slack_input=${mode}_slack_${name}
 	ipam_output=${mode}_slack_${name}.ipam
 	echo "slack"
-	python slack.py ${ipam_input} ${mode} > ${slack_input}
+#	python slack.py ${ipam_input} ${mode} > ${slack_input}
 	echo "ipam"
-	python main.py ${slack_input} mc > ${ipam_output}
+#	python main.py ${slack_input} mc > ${ipam_output}
     done
 fi

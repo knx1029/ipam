@@ -1,5 +1,6 @@
 import sys
 import math
+import copy
 from utils import *
 
 
@@ -211,6 +212,12 @@ class Input:
 
         line = str(nbits) + "\n"
         fout.write(line)
+
+#        for idx, unit in enumerate(self.sunit):
+#            print "unit"
+#            for ip in unit:
+#                print intip2ip(ip)
+#            print "-------"
 
         ## create group size
         group_size = dict()
@@ -514,7 +521,66 @@ def eval(inputs, ipam_filename, weighted = False, non_overlap = False):
     fipam.close()
 
 
-SUBNET_THRESHOLD = (1 << 16) - 1
+def separate_subnet(input, fout):
+
+    def same_subnet(ip1, ip2):
+        threshold = ((SUBNET_THRESHOLD + 1) << 1) - 1
+        while (ip1 >= threshold):
+            ip1 = (ip1 - 1) / 2
+        while (ip2 >= threshold):
+            ip2 = (ip2 - 1) / 2
+        return (ip1 == ip2)
+
+    def subnet_split(unit):
+        new_units = []
+        for ip1 in unit:
+            found = False
+            for u in new_units:
+                ip2 = u[0]
+                if (same_subnet(ip1, ip2)):
+                    u.append(ip1)
+                    found = True
+                    break
+            if (not found):
+                new_units.append([ip1])
+        return new_units
+
+    ## starts here
+    ssunit = map(subnet_split, input.sunit)
+    ddunit = map(subnet_split, input.dunit)
+    new_entries = []
+    for e in input.entries:
+        for si in range(len(input.sunit)):
+            for di in range(len(input.dunit)):
+                if ((e.sip == input.sunit[si][0]) and 
+                    (e.dip == input.dunit[di][0])):
+                    for ss in ssunit[si]:
+                        for dd in ddunit[di]:
+                            ee = copy.copy(e)
+                            ee.sip = ss[0]
+                            ee.dip = dd[0]
+                            new_entries.append(ee)
+    new_sunit, new_dunit = [], []
+    for units in ssunit:
+        new_sunit.extend(units)
+    for units in ddunit:
+        new_dunit.extend(units)
+    new_input = Input(input.name,
+                      new_sunit,
+                      new_dunit,
+                      new_entries,
+                      input.str) 
+    print "ACL", new_input.name
+    print "src_unit", len(new_sunit)
+    print new_sunit
+    print "dst_unit", len(dst_unit)
+    print new_dunit
+    print new_input.len_str
+    print "\n".join(str(e) for e in new_entries)
+
+
+
+SUBNET_THRESHOLD = (1 << 12) - 1
 
 input_filename = sys.argv[1]
 mode = sys.argv[2]
@@ -530,6 +596,12 @@ if ("s" in mode):
             input.show_disjoint(fout, 'w' in mode)
         else:
             input.show_joint(fout, 'w' in mode)
+    fout.close()
+elif ("t" in mode):
+    output_filename = sys.argv[3]
+    fout = open(output_filename, "w")
+    for input in inputs:
+        separate_subnet(input, fout)
     fout.close()
 elif ("e" in mode):
     ipam_filename = sys.argv[3]
