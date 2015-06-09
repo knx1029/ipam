@@ -18,8 +18,8 @@ fi
 
 if [ "$1" == "gatech_m" ]; then
     f=gatech.all
-    echo "" >  gatech_all.m_summary_
-    python policy_unit.py $f am g >> gatech.all_m_summary_
+    echo "" >  gatech_all.m_summary_subnet
+    python policy_unit.py $f am g >> gatech.all_m_summary_subnet
 fi
 
 

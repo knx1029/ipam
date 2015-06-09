@@ -46,6 +46,53 @@ def disjoint(units):
     new_units = [list(s) for s in ip_sets]
     return new_units
 
+## separate subnet
+def input_for_subnets(input):
+    def ip2subnet(ip):
+        SUBNET_LEVEL = (1 << 9) -1
+        x = ip
+        while (x >= SUBNET_LEVEL):
+            x = (x - 1) /2
+        return x
+
+    def units_by_subnet(units):
+        subnet2unit = dict()
+        for unit in units:
+            subnet = ip2subnet(unit[0])
+            for ip in unit:
+                ss = ip2subnet(ip)
+                if (ss != subnet):
+                    print "wrong!"
+                    print ",".join(intip2ip(s) for s in unit)
+                    return None
+            if (subnet not in subnet2unit):
+                subnet2unit[subnet] = [unit]
+            else:
+                subnet2unit[subnet].append(unit)
+        return subnet2unit
+
+    subnet2sunit = units_by_subnet(input.sunit)
+    subnet2dunit = units_by_subnet(input.dunit)
+
+    inputs = dict()
+    subnets = set(subnet2sunit.keys())
+    subnets.update(set(subnet2dunit.keys()))
+    for subnet in subnets:
+        sunit = []
+        dunit = []
+        if (subnet in subnet2sunit):
+            sunit = subnet2sunit[subnet]
+        if (subnet in subnet2dunit):
+            dunit = subnet2dunit[subnet]
+        subnet_input = Input(input.name + intip2ip(subnet),
+                             sunit,
+                             dunit,
+                             [],
+                             input.len_remark)
+        inputs[subnet] = subnet_input
+    return inputs
+
+
 class Input:
     threshold = (1<<32) - 1
 
@@ -213,11 +260,15 @@ class Input:
         line = str(nbits) + "\n"
         fout.write(line)
 
-#        for idx, unit in enumerate(self.sunit):
-#            print "unit"
-#            for ip in unit:
-#                print intip2ip(ip)
-#            print "-------"
+        for idx, unit in enumerate(self.sunit):
+            print "sunit"
+            print ",".join(intip2ip(ip) for ip in unit)
+            print "-------"
+        for idx, unit in enumerate(self.dunit):
+            print "dunit"
+            print ",".join(intip2ip(ip) for ip in unit)
+            print "-------"
+        print ""
 
         ## create group size
         group_size = dict()
@@ -524,7 +575,7 @@ def eval(inputs, ipam_filename, weighted = False, non_overlap = False):
 def separate_subnet(input, fout):
 
     def same_subnet(ip1, ip2):
-        threshold = ((SUBNET_THRESHOLD + 1) << 1) - 1
+        threshold = (1 << 13) - 1
         while (ip1 >= threshold):
             ip1 = (ip1 - 1) / 2
         while (ip2 >= threshold):
@@ -579,13 +630,14 @@ def separate_subnet(input, fout):
     print "\n".join(str(e) for e in new_entries)
 
 
-
 SUBNET_THRESHOLD = (1 << 12) - 1
 
 input_filename = sys.argv[1]
 mode = sys.argv[2]
 inputs = readin(input_filename)
 ## s is to produce input for ipam: {d,j} + {w}
+## u is to produce input for ipam based on different subnet : {d,j}+{w}
+## t is to split the policy units if some ips are not in the same subnet
 ## c is to count unit size
 ## e is to merge outputs of ipam
 if ("s" in mode):
@@ -603,6 +655,20 @@ elif ("t" in mode):
     for input in inputs:
         separate_subnet(input, fout)
     fout.close()
+elif ("u" in mode):
+    output_filename = input_filename + "." + mode
+    fout = open(output_filename, "w")
+    for input in inputs:
+        subnet_inputs = input_for_subnets(input)
+        for (subnet, subnet_input) in subnet_inputs.items():
+#            fout.write(intip2ip(subnet) + "\n")
+            print "SUBNET", intip2ip(subnet)
+            if ("d" in mode):
+                subnet_input.show_disjoint(fout, 'w' in mode)
+            else:
+                subnet_input.show_joint(fout, 'w' in mode)
+    fout.close()
+
 elif ("e" in mode):
     ipam_filename = sys.argv[3]
     eval(inputs, ipam_filename, 'w' in mode, 'n' in mode)

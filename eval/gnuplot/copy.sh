@@ -1,0 +1,1 @@
+cp ${1} ~/Dropbox/IPAM\ \(1\)/figures/eval-${1}
