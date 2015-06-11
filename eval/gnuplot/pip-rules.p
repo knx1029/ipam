@@ -1,7 +1,7 @@
 set terminal postscript
 set output "pip-rules.ps"
 set tmargin 0
-set bmargin 3
+set bmargin 0
 set lmargin 5.5
 set rmargin 0
 

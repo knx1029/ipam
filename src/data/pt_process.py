@@ -107,10 +107,10 @@ def count_hosts(info, hosts, dims):
         for idx, dim in enumerate(dims):
             attr = host[dim]
             attrs = info[dim][0]
-            attr_idx[idx] = attrs.index(attr) + 1
-#            attr_idx[idx] = attr
-        key = ' '.join(str(i) for i in attr_idx)
-#        key = ';'.join(str(i) for i in attr_idx)
+#            attr_idx[idx] = attrs.index(attr) + 1
+            attr_idx[idx] = attr
+#        key = ' '.join(str(i) for i in attr_idx)
+        key = ';'.join(str(i) for i in attr_idx)
         if (key in counts):
             counts[key] = counts[key] + 1
         else:
@@ -242,7 +242,8 @@ file = sys.argv[1]
 mode = sys.argv[2]
 ## g for generate, e for evaluate
 #order = [userclass, group_str, os_str,  status_str, cs_str, room_str, style_str, "manufacturer"]
-order = [userclass, group_str, os_str, status_str, cs_str, room_str, style_str]
+#order = [userclass, group_str, os_str, status_str, cs_str, room_str, style_str]
+order = [userclass, group_str, os_str, status_str, cs_str, style_str]
 #order = [userclass, group_str, room_str, status_str, cs_str, style_str]
 #order = order[:6]
 #order = [userclass, group_str, room_str]

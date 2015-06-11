@@ -1,7 +1,7 @@
 set terminal postscript
 set output "princeton-select.ps"
 set tmargin 0
-set bmargin 3
+set bmargin 1
 set lmargin 5.5
 set rmargin 7
 
