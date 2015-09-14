@@ -84,7 +84,7 @@ def readin_policies(fin, compact):
     return policies, patterns
 
 ## this is the ipam for prefix-based solution
-def prefix(policy):
+def prefix(policies, patterns):
     def ones(x):
         y = 0
         while (x > 0):
@@ -99,6 +99,80 @@ def prefix(policy):
         l2 = int(v2.split(' ')[nth])
         return l1 == l2
 
+    def mask(d1, d2):
+        d3 = [None] * len(d1)
+        for i in range(len(d1)):
+            if (d1[i] == d2[i]):
+                d3[i] = d1[i]
+            else:
+                d3[i] = WC
+        return d3
+
+    ## work starts here
+    counts = policies.counts
+    terms = []
+    repr_cnt = [0] * len(patterns)
+    for keys, c in counts.items():
+        x = 1
+        dims = keys.split(' ')
+        while (c >= x):
+            if (c & x) > 0:
+                terms.append((x, dims))
+                for i, p in enumerate(patterns):
+                    if (p.contain(dims)):
+                        repr_cnt[i] = repr_cnt[i] + 1
+            x = x << 1
+
+    while (len(terms) > 1):
+        min_x = terms[0][0]
+        for x1, _ in terms:
+            min_x = min(min_x, x1)
+
+        best_repr = -1
+        best_j1 = -1
+        best_j2 = -1
+        for j1 in range(len(terms)):
+            x1, d1 = terms[j1]
+            if (min_x != x1):
+                continue
+            for j2 in range(j1 + 1, len(terms)):
+                x2, d2 = terms[j2]
+                if (x1 != x2):
+                    continue
+                repr_total = 0
+                for i, p in enumerate(patterns):
+                    if (p.contain(d1)) and (p.contain(d2)):
+                        repr_total = repr_total + repr_cnt[i]
+                if (repr_total > best_repr):
+                    best_repr = repr_total
+                    best_j1 = j1
+                    best_j2 = j2
+
+        if (best_repr < 0):
+            break
+        x1, d1 = terms[best_j1]
+        x2, d2 = terms[best_j2]
+        for i, p in enumerate(patterns):
+            if (p.contain(d1)) and (p.contain(d2)):
+                repr_cnt[i] = repr_cnt[i] - 1
+        terms.pop(best_j2)
+        terms.pop(best_j1)
+        d3 = mask(d1, d2)
+        terms.append((x1 << 1, d3))
+        print x1, d1, d2, d3, best_repr
+
+    grouped_pattern_idx = [8, 24, 31, 37, 39, 42]
+    curterm = 0
+    for i in range(len(patterns)):
+        print "max_term", repr_cnt[i]
+        curterm = curterm + repr_cnt[i]
+        if ((i + 1) in grouped_pattern_idx):
+            print "current_term", curterm
+            curterm = 0
+    print ""
+    ##
+
+    '''
     counts = policy.counts
     num_rules = 0
     for c in counts.values():
@@ -121,9 +195,9 @@ def prefix(policy):
         if (last_v != None):
             nrule = nrule + ones(last_c)
         nrules[nth] = nrule
-
+ 
     return num_rules, nrules
-
+    '''
 
 ## construct terms from the policy
 ## connect terms based on patterns 
@@ -618,23 +692,27 @@ def shorten(input_filename):
             print key, counts[key]
 
 def ipam(input_filename, mode, nbits = None):
+#    option = "wildcard" #"prefix"
+    option = "prefix"
     if ("s" in mode):
         input = readin(input_filename, "c" in mode, False)
         if (input != None):
             policies, patterns = input
             Pyramid.nbits = int(nbits)
-            option = "wildcard" #"prefix"
             if option == "wildcard":
                 wildcard(policies, patterns)
             elif option == "prefix":
-                num_rules, nrules = prefix(policies)
+                num_rules, nrules = prefix(policies, patterns)
                 print "heuristics:", sum(nrules)
     elif ("m" in mode):
         inputs = readin(input_filename, "c" in mode, True)
         if (inputs != None):
             for (policies, patterns, nbits) in inputs:
-                Pyramid.nbits = nbits                
-                wildcard(policies, patterns)
+                Pyramid.nbits = nbits
+                if option == "wildcard":
+                    wildcard(policies, patterns)
+                elif option == "prefix":
+                    prefix(policies, patterns)
 
 
 
