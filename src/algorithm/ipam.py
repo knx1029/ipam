@@ -535,10 +535,14 @@ def wildcard(policies, patterns):
 
     ## connect terms and assign their weights
     leveled_terms = get_leveled_terms(policies, patterns)
+    
+    grouped_pattern_idx = [8, 24, 31, 37, 39, 42]
 
     ## count the min and max rules
     max_rules = 0
     min_rules = 0
+    idx = 0
+    curterm = 0
     for p in patterns:
 #        print p.id, ":", p.dims
         minterm = 0
@@ -554,7 +558,15 @@ def wildcard(policies, patterns):
                     if (term.subs == None):
                         max_rules = max_rules + p.weight
                         maxterm = maxterm + 1
-        print "min_pattern", minterm
+
+        ## curterm, grouped_pattern_idx
+        curterm = curterm + maxterm
+        idx = idx + 1
+        if (idx in grouped_pattern_idx):
+            print "current_term", curterm
+            curterm = 0
+        ##
+#        print "min_pattern", minterm
         print "max_pattern", maxterm
 
     ## merge pyramids based on connection terms
@@ -569,6 +581,10 @@ def wildcard(policies, patterns):
 
     ## count number of used rules
     use_rules = 0
+    ## curterm, grouped_pattern_idx
+    idx = 0
+    curterm = 0
+    ##
     if (final_pyramid != None):
         for p in patterns:
 #            p.show()
@@ -580,6 +596,13 @@ def wildcard(policies, patterns):
                         cterm = cterm + 1
                         use_rules = use_rules + p.weight
 #                        print ips[term],
+            ## curterm, grouped_pattern_idx
+            curterm = curterm + cterm
+            idx = idx + 1
+            if (idx in grouped_pattern_idx):
+                print "current_term", curterm
+                curterm = 0
+            ## 
 #            print ""
             print "ipam_pattern", cterm
 
@@ -587,6 +610,7 @@ def wildcard(policies, patterns):
     print "min_rules:", min_rules
     print "use_rules", use_rules
     print ""
+
 
 
 def shorten(input_filename):

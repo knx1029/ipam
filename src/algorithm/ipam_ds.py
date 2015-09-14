@@ -79,7 +79,7 @@ class Policies:
         return Policies(1, self.m, nth_counts, True)
 
     def count_values(self):
-        return self.values
+        return self.counts #values
 
 class Term:
     id = 1
