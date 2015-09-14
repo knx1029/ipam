@@ -1,6 +1,7 @@
 import copy
 
 WC = '*'
+PFX = False # True
 
 class Pattern:
     id = 1
@@ -375,6 +376,20 @@ class Pyramid:
         neg_bits  = bv1.negate_bits(bv2)
         if (neg_bits == None) or (len(neg_bits) != 1):
             return None
+
+        ## if it is prefix, then only negating at the 
+        ## first non-* bit is permitted
+        if (PFX):
+            pfx_idx = -1
+            for pfx_i in range(Pyramid.nbits):
+                if (bv1.refs[pfx_i] == None):
+                    pfx_idx = pfx_i
+                else:
+                    break
+            if (pfx_idx + 1 != neg_bits[0]):
+                return None
+        ##
+
         bit_to_flip = neg_bits[0]
         bit_value_star = BitValue(Pyramid.nbits,
                                   term_star)
@@ -403,8 +418,26 @@ class Pyramid:
         bv1 = self.repr(term1)
         bv2 = other_py.repr(term2)
         bit_to_flip = -1
+
+        ## if it is prefix, then only negating at the 
+        ## first non-* bit is permitted
+        pfx_idx = -1
+        if (PFX):
+            for pfx_i in range(Pyramid.nbits):
+                if (bv2.refs[pfx_i] == None):
+                    pfx_idx = pfx_i
+                else:
+                    break
+        ##
+
         ## enumerate the bit_to_flip
         for i in range(self.level):
+            ## if it is prefix, then only negating at the 
+            ## first non-* bit is permitted
+            if (PFX) and (i != pfx_idx + 1):
+                continue
+            ##
+
             if (bv1.refs[i] != None):
                 ## calculate the bitvalue after flipping
                 bv_prime = other_py.root.copy()
@@ -491,6 +524,20 @@ class Pyramid:
         bit_to_flip = self.level
         if (bit_to_flip >= Pyramid.nbits):
             return None
+
+        ## if it is prefix, then only negating at the 
+        ## first non-* bit is permitted
+        pfx_idx = -1
+        if (PFX):
+            for pfx_i in range(Pyramid.nbits):
+                if (bv1.refs[pfx_i] == None):
+                    pfx_idx = pfx_i
+                else:
+                    break
+            if (pfx_idx + 1 != bit_to_flip):
+                return None
+        ##
+
 
         ## merge
         new_level = max(self.level, other_py.level) + 1

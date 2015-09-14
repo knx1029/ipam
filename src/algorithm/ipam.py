@@ -528,12 +528,7 @@ def assign_bits(pyramid):
     return term2value
 
 ## the full wildcard algorithm starts here
-def wildcard(policies, patterns):
-#    print "patterns"
-#    for p in patterns:
-#        p.show()
-
-    ## connect terms and assign their weights
+def wildcard(policies, patterns):    ## connect terms and assign their weights
     leveled_terms = get_leveled_terms(policies, patterns)
     
     grouped_pattern_idx = [8, 24, 31, 37, 39, 42]
