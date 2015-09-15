@@ -143,6 +143,7 @@ def prefix(policies, patterns):
                 for i, p in enumerate(patterns):
                     if (p.contain(d1)) and (p.contain(d2)):
                         repr_total = repr_total + repr_cnt[i]
+#                        repr_total = repr_total + 1
                 if (repr_total > best_repr):
                     best_repr = repr_total
                     best_j1 = j1
@@ -216,14 +217,14 @@ def get_leveled_terms(policies, patterns):
         terms = []
         for v, c in counts.items():
             dims = v.split(' ')
-            weight = 0
+            sum_ps = 0
             for p in patterns:
                 if (p.contain(dims)):
-                    weight = weight + p.weight
+                    sum_ps = sum_ps + p.weight
             for i in range(0, Pyramid.nbits):
                 j = (1<<i)
                 if (c & j) > 0:
-                    term = Term(i, v.split(' '), 0, weight)
+                    term = Term(i, v.split(' '), 0, sum_ps)
                     terms.append(term)
         return terms
 
@@ -482,7 +483,7 @@ def construct_pyramids(leveled_terms):
             continue
         old_w = conn.term.weight
         recalc_weight(conn.term)
-        if (old_w > conn.term.weight):
+        if (old_w != conn.term.weight):
             heapq.heappush(connections, conn)
             continue
 
@@ -692,8 +693,8 @@ def shorten(input_filename):
             print key, counts[key]
 
 def ipam(input_filename, mode, nbits = None):
-#    option = "wildcard" #"prefix"
-    option = "prefix"
+    option = "wildcard" #"prefix"
+#    option = "prefix"
     if ("s" in mode):
         input = readin(input_filename, "c" in mode, False)
         if (input != None):

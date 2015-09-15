@@ -591,3 +591,4 @@ class Conn:
             return other_conn.term.weight - self.term.weight
         else:
             return self.term.level - other_conn.term.level
+
