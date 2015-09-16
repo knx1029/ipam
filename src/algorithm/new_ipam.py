@@ -100,13 +100,16 @@ def new_prefix(policies, patterns):
     grouped_pattern_idx = [8, 24, 31, 37, 39, 42]
     curterm = 0
     idx = 0
+    pfx_rules = 0
     for p in patterns:
         print "pfx_term", repr_cnt[p]
         curterm = curterm + repr_cnt[p]
+        pfx_rules = pfx_rules + repr_cnt[p] * p.weight
         idx = idx + 1
         if (idx in grouped_pattern_idx):
             print "pfx_sum_term", curterm
             curterm = 0
+    print "pfx_rule", pfx_rules
     print ""
 
     return leveled_terms
@@ -157,7 +160,7 @@ def new_wildcard(policies, patterns):
             ## 
         print ""
 
-    print "use_rules", use_rules
+    print "wc_rules", use_rules
     print ""
 
 
@@ -185,14 +188,10 @@ def new_construct_pyramids(leveled_terms, patterns):
                 for p in conn.term.pattern_keys:
                     repr_cnt[p] = repr_cnt[p] - 1
                 return temp_pyramids, temp_visited_terms
-#                pyramids = temp_pyramids
-#                visited_terms = temp_visited_terms
             else:
                 print "failed", str(conn.term)
                 return None
-#            return res
         else:
-#            return False
             return None
 
     ## find the patterns that two terms share
@@ -267,15 +266,18 @@ def new_construct_pyramids(leveled_terms, patterns):
             pyramids, visited_terms = res
 
     wc_terms = dict()
-    for level, terms in leveled_terms.items():
+    for level,terms in sorted(leveled_terms.items()):
+#    for level, terms in leveled_terms.items():
         for term in terms:
             if (term.subs == None):
+#                print str(term)
                 wc_terms[term] = {term}
                 continue
-
+#            print "nc", str(term)
             lterms = wc_terms[term.subs[0]]
             rterms = wc_terms[term.subs[1]]
             tterms = lterms.union(rterms)
+            tterms.add(term)
             wc_terms[term] = tterms
             matches = []
             for lterm in lterms:
@@ -316,9 +318,9 @@ def new_construct_pyramids(leveled_terms, patterns):
                     conn = Conn(term_k)
                     res = try_merge(conn, pyramids, visited_terms, repr_cnt)
                     if (res != None):
-                        print str(term_i)
-                        print str(term_j)
-                        print term_k
+#                        print str(term_i)
+#                        print str(term_j)
+#                        print term_k
                         pyramids, visited_terms = res
                         tterms.add(term_k)
                     else:

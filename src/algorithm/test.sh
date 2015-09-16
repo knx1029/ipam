@@ -130,7 +130,8 @@ fi
 
 if [ "$1" == "princeton" ]; then
     echo "ipam"
-    name=princeton_prod
+    name=princeton_update_4blocks
+#princeton_dims
     ipam_input=../data/ptdata/${name}
     ipam_output=${name}.ipam
     python main.py ${ipam_input} mc > ${ipam_output}
@@ -141,6 +142,6 @@ if [ "$1" == "princeton" ]; then
 	echo "slack"
 #	python slack.py ${ipam_input} ${mode} > ${slack_input}
 	echo "ipam"
-#	python main.py ${slack_input} mc > ${ipam_output}
+	python main.py ${slack_input} mc > ${ipam_output}
     done
 fi

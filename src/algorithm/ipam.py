@@ -506,7 +506,7 @@ def shorten(input_filename):
 
 def ipam(input_filename, mode, nbits = None):
     option = "wildcard" #"prefix"
-    new_old_option = "new"
+    new_old_option =  "new"
 #    option = "prefix"
     if ("s" in mode):
         input = readin(input_filename, "c" in mode, False)
@@ -524,10 +524,10 @@ def ipam(input_filename, mode, nbits = None):
             for (policies, patterns, nbits) in inputs:
                 Pyramid.nbits = nbits
                 if option == "wildcard":
-                if (new_old_option == "new"):
-                    new_ipam.new_wildcard(policies, patterns)
-                else:
-                    wildcard(policies, patterns)
+                    if (new_old_option == "new"):
+                        new_ipam.new_wildcard(policies, patterns)
+                    else:
+                        wildcard(policies, patterns)
                 elif option == "prefix":
                     if (new_old_option == "new"):
                         new_ipam.new_prefix(policies, patterns)

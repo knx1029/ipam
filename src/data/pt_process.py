@@ -66,6 +66,39 @@ def readin(file, cleanup = True):
     fin.close()
     return hosts
 
+def sort_dates(host_set, nblock, block_no_st, block_no_ed):
+    def compare(h1, h2):
+        return h1[date_str] < h2[date_str]
+
+    date_str = "datecreated"
+    
+    host_list = list(host_set)
+    host_list.sort(cmp = compare)
+
+    nblock = 4
+    block_size = len(host_set) / nblock
+
+    st = block_no_st * block_size
+    ed = min(block_no_ed * block_size, len(host_set))
+    return host_list[st:ed]
+
+    '''
+    keys = [userclass, group_str, os_str,  status_str, cs_str,
+            room_str, style_str, "manufacturer", #"datelastchanged", 
+            "datecreated"]
+
+    if True:
+        st = block_no_st * block_size
+        ed = min(block_no_ed * block_size, len(host_set))
+        for i in range(st, ed):
+            host = host_list[i]
+            for key in keys:
+                if (key not in host):
+                    host[key] = "EMPTY"
+                print "{0}: {1}".format(key, host[key])
+            print ""
+        print "---------------------"
+    '''
 
 def analyze(hosts):
     info = dict()
@@ -107,10 +140,11 @@ def count_hosts(info, hosts, dims):
         for idx, dim in enumerate(dims):
             attr = host[dim]
             attrs = info[dim][0]
-#            attr_idx[idx] = attrs.index(attr) + 1
-            attr_idx[idx] = attr
-#        key = ' '.join(str(i) for i in attr_idx)
-        key = ';'.join(str(i) for i in attr_idx)
+            attr_idx[idx] = attrs.index(attr) + 1
+            ## print by string or number
+#            attr_idx[idx] = attr
+        key = ' '.join(str(i) for i in attr_idx)
+#        key = ';'.join(str(i) for i in attr_idx)
         if (key in counts):
             counts[key] = counts[key] + 1
         else:
@@ -150,8 +184,9 @@ def gen_input(info, hosts, order, start = 1, scales = [1]):
             for i in range(l):
                 attrs = info[new_order[i]][0]
                 for j in range(len(attrs)):
-#                    attr_idx[i] = j + 1
-                    attr_idx[i] = "{0}.{1}".format(str(j + 1), attrs[j])
+                    attr_idx[i] = j + 1
+                    ## print by string or number
+#                    attr_idx[i] = "{0}.{1}".format(str(j + 1), attrs[j])
                     print " ".join(str(k) for k in attr_idx),
                     print 1
                 attr_idx[i] = 0
@@ -243,14 +278,14 @@ mode = sys.argv[2]
 ## g for generate, e for evaluate
 #order = [userclass, group_str, os_str,  status_str, cs_str, room_str, style_str, "manufacturer"]
 #order = [userclass, group_str, os_str, status_str, cs_str, room_str, style_str]
-order = [userclass, group_str, os_str, status_str, cs_str, style_str]
+#order = [userclass, group_str, os_str, status_str, cs_str, style_str]
+order = [userclass, group_str, room_str, status_str]
 #order = [userclass, group_str, room_str, status_str, cs_str, style_str]
 #order = order[:6]
 #order = [userclass, group_str, room_str]
 #status_str, 
 
 hosts = readin(file)
-info = analyze(hosts)
 if ("g" in mode):
     orders = [[userclass, group_str, room_str],
               [userclass, group_str, os_str],
@@ -259,6 +294,7 @@ if ("g" in mode):
               [room_str, status_str, style_str],
               [room_str, cs_str, os_str],
               [status_str, cs_str, os_str]]
+    info = analyze(hosts)
 #    for order in orders:
 #        gen_input(info, hosts, order, len(order))
 #    print len(hosts)
@@ -268,6 +304,14 @@ if ("g" in mode):
 #    gen_input(info, hosts, order, len(order), [2, 4, 6, 8, 10])
 elif ('e' in mode):
     ipamfile = sys.argv[3]
+    info = analyze(hosts)
     eval(ipamfile, info, order, 1)
 elif ('v' in mode):
     vlan_rt(hosts)
+## update
+elif ('u' in mode):
+    block_no = 4
+    for ed in range(block_no):
+        block_hosts = sort_dates(hosts, block_no, 0, ed + 1)
+        info = analyze(block_hosts)
+        gen_input(info, block_hosts, order, len(order))
