@@ -75,7 +75,6 @@ def sort_dates(host_set, nblock, block_no_st, block_no_ed):
     host_list = list(host_set)
     host_list.sort(cmp = compare)
 
-    nblock = 4
     block_size = len(host_set) / nblock
 
     st = block_no_st * block_size
@@ -120,7 +119,7 @@ def analyze(hosts):
                 cnts.append(1)
             else:
                 idx = attrs.index(attr)
-                cnts[idx] =cnts[idx] + 1
+                cnts[idx] = cnts[idx] + 1
     return info
 
 def show_info(info):
@@ -152,7 +151,7 @@ def count_hosts(info, hosts, dims):
     return counts
 
 
-def gen_input(info, hosts, order, start = 1, scales = [1]):
+def gen_input(info, hosts, order, start = 1, scales = [1], add_on = 0):
     def num2bits(n):
         return int(math.ceil(math.log(n)/math.log(2.0) - 1e-9))
 
@@ -178,7 +177,8 @@ def gen_input(info, hosts, order, start = 1, scales = [1]):
 #           print 16
             print len(counts), l, attrs_counts
             for (key, value) in counts.items():
-                print key, value * scale
+                print key, max(int(math.ceil(1.0 * value * scale)), value + add_on)
+#                print key, int(math.ceil(1.0 * value * scale))
 
             attr_idx = [0] * l
             for i in range(l):
@@ -273,6 +273,74 @@ def vlan_rt(hosts):
             sc = stretch_counts[vp]
             print vp, " : ", sc, "/", pc
 
+
+def left_over(file1, file2):
+    def readin(file):
+        fin = open(file, 'r')
+        hosts = []
+        new_host = dict()
+        line = fin.readline()
+        line = fin.readline()
+        tokens = line.split(' ')
+        m = int(tokens[0])
+        amount = dict()
+        for i in range(m):
+            line = fin.readline()
+            tokens = line.split(' ')
+            key = ' '.join(tokens[:len(tokens) - 1])
+            value = int(tokens[-1])
+            amount[key] = value
+        fin.close()
+        return amount
+
+    ## work starts here
+    a1 = readin(file1)
+    a2 = readin(file2)
+    lefts = dict()
+    for key, value in a1.items():
+        if (key not in a2):
+            l = value
+        else:
+            l = a1[key] - a2[key]
+
+        tokens = key.split(' ')
+        tmp = tokens[1]
+        tokens[1] = "17"
+        ghost_key = ' '.join(tokens)
+
+        if (l > 0):
+            if (ghost_key in a2):
+                g = a2[ghost_key]
+                if (g > l):
+                    a2[ghost_key] = g - l
+                    l = 0
+                    print ghost_key, ":", tmp, g - l
+                else:
+                    a2[ghost_key] = 0
+                    l = l - g
+                    print ghost_key, ":", tmp, l - g
+
+        if (l > 0):
+#            if (ghost_key in lefts):
+#                lefts[ghost_key] = lefts[ghost_key] + l
+#            else:
+#                lefts[ghost_key] = l
+            lefts[key] = l
+
+#    print sum(a1.values())
+#    print sum(a2.values())
+#    print "----"
+    print sum(lefts.values())
+    print len(lefts)
+
+    for key, value in a2.items():
+        if ("17" in key):
+            print key, value
+#    for key, value in lefts.items():
+#        print key, value
+    return lefts
+
+
 file = sys.argv[1]
 mode = sys.argv[2]
 ## g for generate, e for evaluate
@@ -285,8 +353,8 @@ order = [userclass, group_str, room_str, status_str]
 #order = [userclass, group_str, room_str]
 #status_str, 
 
-hosts = readin(file)
 if ("g" in mode):
+    hosts = readin(file)
     orders = [[userclass, group_str, room_str],
               [userclass, group_str, os_str],
               [userclass, cs_str, os_str],
@@ -303,15 +371,24 @@ if ("g" in mode):
     gen_input(info, hosts, order, len(order))
 #    gen_input(info, hosts, order, len(order), [2, 4, 6, 8, 10])
 elif ('e' in mode):
+    hosts = readin(file)
     ipamfile = sys.argv[3]
     info = analyze(hosts)
     eval(ipamfile, info, order, 1)
 elif ('v' in mode):
+    hosts = readin(file)
     vlan_rt(hosts)
 ## update
 elif ('u' in mode):
-    block_no = 4
-    for ed in range(block_no):
-        block_hosts = sort_dates(hosts, block_no, 0, ed + 1)
-        info = analyze(block_hosts)
-        gen_input(info, block_hosts, order, len(order))
+    hosts = readin(file)
+    info = analyze(hosts)
+    block_no = 2
+    block_hosts = sort_dates(hosts, block_no, 0, block_no - 1)
+#        info = analyze(block_hosts)
+    gen_input(info, block_hosts, order, len(order), [1], 10)
+    block_hosts = sort_dates(hosts, block_no, 0, block_no)
+    gen_input(info, block_hosts, order, len(order))
+
+## left over
+elif ('l' in mode):
+    left_over(file, sys.argv[3])

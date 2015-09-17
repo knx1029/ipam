@@ -98,7 +98,7 @@ def update_counts(counts1, counts2):
 
 ## use 1 extra bit to reduce opt_slack
 ## but does random slack distribution
-def min_slack(policies, debug = False):
+def min_slack(policies, patterns, debug = False):
     ## stores the slack each attribute can accommodate
     slack_size = dict()
     ## create a fake index to fulfill the slack
@@ -119,6 +119,15 @@ def min_slack(policies, debug = False):
             if int(v) >= max_v:
                 max_v = int(v) + 1
         slack_size[i] = ith_slack
+
+    def dint(x):
+        if (x == WC):
+            return 0
+        else:
+            return int(x)
+    for p in patterns:
+        max_v = max(max_v, max(map(dint, p.dims)) + 1)
+
     fake_v = str(max_v)
 
     
@@ -146,7 +155,7 @@ def min_slack(policies, debug = False):
 ## to reduce its representation in powers-of-two
 ## in descending order and reduce the slack from corresponding 
 ## attributes. use random match_up for the left-over slack
-def all_slack(policies, debug = False):
+def all_slack(policies, patterns, debug = False):
 
     ## starts here
     nbit = power_of_two(policies.m)
@@ -174,6 +183,16 @@ def all_slack(policies, debug = False):
             left_slack[i] = left_slack[i] - sl
             if int(v) >= max_v:
                 max_v = int(v) + 1
+
+    def dint(x):
+        if (x == WC):
+            return 0
+        else:
+            return int(x)
+    for p in patterns:
+        max_v = max(max_v, max(map(dint, p.dims)) + 1)
+
+
     fake_v = str(max_v)
 
     ## calculate the slack needed by each group
@@ -282,7 +301,7 @@ def all_slack(policies, debug = False):
 
 ## enum_slack, enumerate powers-of-two for groups to
 ## use slack of attributes. use match_up for the left-over
-def enum_slack(policies, debug = False):
+def enum_slack(policies, patterns, debug = False):
 
     def extra_slack(dims, req_slack):
         ## deduct slack
@@ -371,6 +390,15 @@ def enum_slack(policies, debug = False):
             adjust_slack_size(slack_size, i, ith_counts, left_slack)
         else:
             update_slack_size(slack_size, i, ith_counts, left_slack)
+
+    def dint(x):
+        if (x == WC):
+            return 0
+        else:
+            return int(x)
+    for p in patterns:
+        max_v = max(max_v, max(map(dint, p.dims)) + 1)
+
     fake_v = str(max_v)
     if (debug):
         print "fake_v", fake_v
@@ -493,11 +521,11 @@ def main(input_filename, mode):
         input = ipam.readin(input_filename, 'c' in mode, False)
         policies, patterns = input
         if ('i' in mode):
-            slack_policies = min_slack(policies, debug)
+            slack_policies = min_slack(policies, patterns, debug)
         elif ('a' in mode):
-            slack_policies = all_slack(policies, debug)
+            slack_policies = all_slack(policies, patterns, debug)
         elif ('e' in mode):
-            slack_policies = enum_slack(policies, debug)
+            slack_policies = enum_slack(policies, patterns, debug)
         if (not debug):
             writeout_policies(slack_policies, patterns)
     elif ('m' in mode):
@@ -506,11 +534,11 @@ def main(input_filename, mode):
 #        if (True):
 #            policies, patterns, nbits = inputs[1]
             if ('i' in mode):
-                slack_policies = min_slack(policies, debug)
+                slack_policies = min_slack(policies, patterns, debug)
             elif ('a' in mode):
-                slack_policies = all_slack(policies, debug)
+                slack_policies = all_slack(policies, patterns, debug)
             elif ('e' in mode):
-                slack_policies = enum_slack(policies, debug)
+                slack_policies = enum_slack(policies, patterns, debug)
             if (not debug):
                 print nbits + 1
 #                print 16

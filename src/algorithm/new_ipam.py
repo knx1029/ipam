@@ -72,8 +72,13 @@ def new_prefix(policies, patterns):
                     best_t1 = term1
                     best_t2 = term2
 
+        print min_level, best_repr
         if (best_repr < 0):
-            break
+            for term1 in terms:
+                if (min_level == term1.level):
+                    best_t1 = term1
+            terms.remove(best_t1)
+            continue
 
         terms.remove(best_t1)
         terms.remove(best_t2)

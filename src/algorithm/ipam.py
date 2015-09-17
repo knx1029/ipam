@@ -161,7 +161,6 @@ def prefix(policies, patterns):
         terms.pop(best_j1)
         d3 = mask(d1, d2)
         terms.append((x1 << 1, d3))
-        print x1, d1, d2, d3, best_repr
 
     grouped_pattern_idx = [8, 24, 31, 37, 39, 42]
     curterm = 0
@@ -357,7 +356,6 @@ def construct_pyramids(leveled_terms):
     ## each atomic term is a pyramid
     for level, terms in leveled_terms.items():
         for term in terms:
-            print str(term)
             if (term.subs == None):
                 py = Pyramid.one_term_pyramid(term)
                 pyramids.add(py)
