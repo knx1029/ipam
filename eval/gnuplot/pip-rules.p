@@ -14,6 +14,7 @@ set ylabel "#Rules" font "Times-Roman Bold, 40" offset -1.5, 0
 set xtics font "Times-Roman Bold, 35" offset 0, -1
 set ytics font "Times-Roman, 25"
 set grid ytics
+set yrange[0:]
 show grid
 
 

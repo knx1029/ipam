@@ -9,9 +9,9 @@ def new_prefix(policies, patterns):
     ## append value to d[key]
     def add_to_dict(d, key, value):
         if (key in d):
-            d[key].append(value)
+            d[key].add(value)
         else:
-            d[key] = [value]
+            d[key] = {value}
 
 
     def mask(d1, d2):
@@ -30,6 +30,8 @@ def new_prefix(policies, patterns):
     for p in patterns:
         repr_cnt[p] = 0
     leveled_terms = {}
+    print sum(counts.values())
+
     for keys, c in counts.items():
         x = 1
         l = 0
@@ -47,7 +49,6 @@ def new_prefix(policies, patterns):
                     repr_cnt[p] = repr_cnt[p] + 1
             l = l + 1
             x = x << 1
-
     while (len(terms) > 1):
         min_level = Pyramid.nbits + 1
         for term in terms:
@@ -72,12 +73,14 @@ def new_prefix(policies, patterns):
                     best_t1 = term1
                     best_t2 = term2
 
-        print min_level, best_repr
+#        print min_level, best_repr
         if (best_repr < 0):
             for term1 in terms:
                 if (min_level == term1.level):
                     best_t1 = term1
-            terms.remove(best_t1)
+            best_t2 = Term(best_t1.level, [WC] * len(best_t1.dims), 0, 0, None, {})
+            add_to_dict(leveled_terms, best_t2.level, best_t2)
+            terms.add(best_t2)
             continue
 
         terms.remove(best_t1)
@@ -100,8 +103,8 @@ def new_prefix(policies, patterns):
                 best_t1.edges[p] = term3
                 best_t2.edges[p] = term3
 
-
     print Term.id, len(terms)
+
     grouped_pattern_idx = [8, 24, 31, 37, 39, 42]
     curterm = 0
     idx = 0
@@ -269,9 +272,10 @@ def new_construct_pyramids(leveled_terms, patterns):
         res = try_merge(conn, pyramids, visited_terms, repr_cnt)
         if (res != None):
             pyramids, visited_terms = res
-
+ 
+    
     wc_terms = dict()
-    for level,terms in sorted(leveled_terms.items()):
+    for level, terms in sorted(leveled_terms.items()):
 #    for level, terms in leveled_terms.items():
         for term in terms:
             if (term.subs == None):
@@ -279,6 +283,7 @@ def new_construct_pyramids(leveled_terms, patterns):
                 wc_terms[term] = {term}
                 continue
 #            print "nc", str(term)
+
             lterms = wc_terms[term.subs[0]]
             rterms = wc_terms[term.subs[1]]
             tterms = lterms.union(rterms)
@@ -333,7 +338,7 @@ def new_construct_pyramids(leveled_terms, patterns):
                             del term_i.edges[p]
                             del term_j.edges[p]
     
-
+    
     ## mark the single atomic pyramid as visited
     for py in pyramids:
         ## single term pyramid
@@ -342,7 +347,7 @@ def new_construct_pyramids(leveled_terms, patterns):
 
     print "visited", len(visited_terms)
 #    print "\n".join(str(t) for t in visited_terms)
-    print "before final_merge:", correct(pyramids)
+    print "before final_merge:", correct(pyramids), len(pyramids)
 
     ## final merge
     final_pyramid = final_merge(pyramids)

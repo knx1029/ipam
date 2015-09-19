@@ -722,6 +722,7 @@ def check_valid(pyramids):
         if (x < 1):
             return False, None
         spare_counts[level] = x - 1
+#        spare_counts[level] = x
         x = x - 1
         if (x == 0) and (usedup_level > Pyramid.nbits):
             usedup_level = level

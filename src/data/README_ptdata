@@ -1,0 +1,10 @@
+princeton_dims
+princeton_select
+princeton_scale
+pt_2blocks : update
+pt_2blocks_1to2 : update without tuned ghost attribute group size
+pt_2blocks_ghost : update with ghost attribute group size tuned
+pt_2blocks_1to2_ : incremental
+
+new* and *pt_2blocks* are results of running the new IPAM algorithms
+the rest are results of the old IPAM

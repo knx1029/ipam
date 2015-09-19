@@ -1,12 +1,12 @@
 set terminal postscript
 set output "princeton-select.ps"
 set tmargin 0
-set bmargin 1
+set bmargin 3
 set lmargin 5.5
-set rmargin 7
+set rmargin 0
 
 set style data histogram
-set style histogram cluster gap 1.5
+set style histogram cluster gap 2
 set style fill solid border rgb "black"
 
 set ylabel "#Rules" font "Times-Roman Bold, 40" offset -1.5, 0
@@ -14,8 +14,8 @@ set ylabel "#Rules" font "Times-Roman Bold, 40" offset -1.5, 0
 set xtics font "Times-Roman Bold, 25" offset -4,-3 rotate by 20
 set ytics font "Times-Roman, 25"
 #set y2tics font "Times-Roman, 25" offset -0.5, 0
-#set yrange[0:500]
-#set y2range[0:100]
+set yrange[0:]
+#set y2range[0:]
 set grid ytics
 show grid
 

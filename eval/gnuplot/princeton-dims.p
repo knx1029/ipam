@@ -6,7 +6,7 @@ set lmargin 5.5
 set rmargin 0
 
 set style data histogram
-set style histogram cluster gap 1.5
+set style histogram cluster gap 2
 set style fill solid border rgb "black"
 
 set xlabel "#Dimensions" font "Times-Roman Bold, 40" offset -0.5, -1.5
@@ -18,8 +18,11 @@ set grid ytics
 show grid
 
 
-set key font "Times-Roman Bold, 30" spacing 5 at 1, 2000
+set key font "Times-Roman Bold, 25" spacing 5 maxrows 2 at 6, 1950 width 10
 
 plot 'princeton_dims.dat' using 4:xtic(1) title col linecolor 1 fs pattern 1, \
-'' using 2:xtic(1) title col linecolor 7 fs pattern 3, \
-'' using 3:xtic(1) title col linecolor 9 fs pattern 3
+'' using 5:xtic(1) title col linecolor 3 fs pattern 2, \
+'' using 7:xtic(1) title col linecolor 7 fs pattern 7, \
+'' using 3:xtic(1) title col linecolor 9 fs pattern 3, \
+'' using 2:xtic(1) title col linecolor 7 fs pattern 3
+
