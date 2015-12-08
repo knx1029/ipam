@@ -1,0 +1,17 @@
+#Case Wildcard Prefix Combinations
+Case ALP_WC ALP_PFX Combinations
+#Role,SecurityLevel,Location 136 276 80 R,SL,Loc 0
+#Role,SecurityLeve,OS 120 231 58 R,SL,OS 1
+#Location,CS_owned,OS 96 198 58 Loc,CS,OS 2
+#Role,CS_owned,OS 85 190 55 R,CS,OS 3
+#Location,Status,Usage 59 106 32 Loc,S,Use 4
+#SecurityLevel,Status,CS 49 111 31 SL,S,CS 5
+#Status,CS_owned,OS 34 77 22 S,CS,OS 6
+
+Role,SecurityLevel,Location 117 135 80 R,SL,Loc 0
+Role,SecurityLeve,OS 97 116 58 R,SL,OS 1
+Location,CS_owned,OS 74 92 58 Loc,CS,OS 2
+Role,CS_owned,OS 53 60 55 R,CS,OS 3
+Location,Status,Usage 43 53 32 Loc,S,Use 4
+SecurityLevel,Status,CS 73 90 31 SL,S,CS 5
+Status,CS_owned,OS 36 44 22 S,CS,OS 6

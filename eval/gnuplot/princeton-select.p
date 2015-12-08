@@ -22,6 +22,6 @@ show grid
 set linestyle 1 pt 5 ps 2.5 lc 7 lt 1 lw 10
 set key font "Times-Roman Bold, 30" spacing 5 right top
 
-plot 'princeton_select.dat' using 2:xtic(5) title col linecolor 7 fs pattern 3, \
-'' using 3:xtic(5) title col linecolor 9 fs pattern 3
+plot 'princeton_select.dat' using 3:xtic(5) title col linecolor 9 fs pattern 3, \
+'' using 2:xtic(5) title col linecolor 7 fs pattern 3
 #'' using 6:4 axes x1y2 title '#Attribute cominations' w linespoints ls 1

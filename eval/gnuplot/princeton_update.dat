@@ -1,0 +1,20 @@
+#1 is before, 2 is after
+#COL  PFX_UPDATE PFX_OPT WC_UPDATE WC_OPT
+#BEF 236 0 202 0
+#OVERFLOW 18 0 18 0
+#NEW_ATTR 63 0 53 0
+#AFT 0 291 0 257
+
+#COL   BeforeUpdate Overflow NewAttribute WithoutUpdate
+COL FirstSet Overflow NewAttribute UnionOfTwoSets
+PFX_Update 139 24 6 0
+\t 0 0 0 153
+#\t 0 0 0 138
+#\t 0 0 0 166
+WC_Update 119 24 6 0
+\t 0 0 0 130
+#\t 0 0 0 117
+#\t 0 0 0 138
+
+#OPT_PFX_BEF OPT_PFX_AFT INC_PFX_NEW INC_PFX_OFL OPT_WC_BEF OPT_WC_AFT INC_WC_AFT
+#236 291 18 53 202 257 18 53

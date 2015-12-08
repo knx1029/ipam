@@ -1,0 +1,16 @@
+#Case BitSegmentation Wildcard Prefix ProdDim
+#Case BitSeg ALP_WC ALP_PFX SingleDim ProdDim
+#1 12 12 12 12 12
+#2 16 12 12 12 12
+#3 18 12 12 12 12
+#4 21 12 12 12 12
+#5 21 12 12 12 11
+#6 23 12 12 12 11
+
+Case BitSeg ALP/SingleDim/SD_PFX/SD_WC Opt
+1 12 12 11
+2 16 12 11
+3 18 12 11
+4 21 12 11
+5 21 12 11
+6 23 12 11

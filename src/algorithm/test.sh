@@ -130,7 +130,10 @@ fi
 
 if [ "$1" == "princeton" ]; then
     echo "ipam"
-    name=pt_2blocks_ghost
+    name=pt_2blocks_ugss_ghost
+#pt_2blocks_ghost__
+#pt_2blocks_1to2
+#princeton_scale
 #princeton_update_ghost_4blocks
 #princeton_dims
     ipam_input=../data/ptdata/${name}

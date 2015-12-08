@@ -260,6 +260,9 @@ def new_construct_pyramids(leveled_terms, patterns):
             else:
                 connections.append(Conn(term))
 
+    if (not check_valid(pyramids)):
+        return None
+
     print "all", len(pyramids),  len(connections)
 
     ## use non-atomic term (i.e., connection) to merge pyramids

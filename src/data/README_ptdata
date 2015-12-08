@@ -1,10 +1,14 @@
 princeton_dims
 princeton_select
 princeton_scale
-pt_2blocks : update
-pt_2blocks_1to2 : update without tuned ghost attribute group size
-pt_2blocks_ghost : update with ghost attribute group size tuned
-pt_2blocks_1to2_ : incremental
+
+pt_2blocks_ugss : update on userclass, group, status, style
+pt_2blocks_ugss_1to2 : difference between two stages
+pt_2blocks_ugss_ghost : update with ghost attribute group size tuned
+pt_2blocks_ugss_ghost_1to2 : difference between ghost 1st stage and the full
 
 new* and *pt_2blocks* are results of running the new IPAM algorithms
 the rest are results of the old IPAM
+
+pfx_wc_cmp: runs optimal prefix and bitweaving to optimize a VLAN-based 
+random IP allocation
